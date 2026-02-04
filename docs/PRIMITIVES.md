@@ -2,7 +2,7 @@
 
 This file documents the *single-source* “contract” we want to keep stable as
 `pyCircuit` grows: every primitive has a **matching C++ template** and a
-**matching SystemVerilog module** with the same name and port names.
+**matching Verilog module** with the same name and port names.
 
 The MLIR dialect (`pyc.*` ops) should lower to this primitive layer.
 
@@ -13,20 +13,23 @@ The MLIR dialect (`pyc.*` ops) should lower to this primitive layer.
 Represents a combinational value of width `W` bits.
 
 - C++: `pyc::cpp::Wire<W>` (see `include/pyc/cpp/pyc_bits.hpp`)
-- Verilog: `logic [W-1:0]`
+- Verilog: `wire [W-1:0]` (or just `[W-1:0]` ports)
 
 ### 1.2 `Reg<W>` (module-like)
 
 Represents a clocked storage element with synchronous reset and clock enable.
 
-- Verilog module: `pyc_reg` (`include/pyc/verilog/pyc_reg.sv`)
+- Verilog module: `pyc_reg` (`include/pyc/verilog/pyc_reg.v`)
 - C++ class: `pyc::cpp::pyc_reg<W>` (`include/pyc/cpp/pyc_primitives.hpp`)
+ 
+Note: although the testbenches in `examples/` are written in SystemVerilog for convenience,
+the *design* backend is plain Verilog.
 
 Ports:
 
-- `clk` (i1 / logic)
-- `rst` (i1 / logic)
-- `en` (i1 / logic)
+- `clk` (i1 / wire)
+- `rst` (i1 / wire)
+- `en` (i1 / wire)
 - `d` (W-bit)
 - `init` (W-bit)
 - `q` (W-bit)
@@ -47,6 +50,11 @@ Fixed-size container (useful for regfiles, bundles of lanes, etc.).
 
 All combinational primitives have an `eval()` method in C++ and continuous
 assign semantics in Verilog.
+
+Note: the current `pyc-compile` emitters typically **inline** these operations
+as expressions (Verilog `assign` / C++ `Wire<>` operators) to keep generated
+code netlist-like. The `pyc_*` combinational wrappers remain available as a
+stable “template library” layer for hand-written designs or future lowering.
 
 ### 2.1 `pyc_add` (W-bit)
 
@@ -90,7 +98,7 @@ primitive.
 
 ### 4.1 `pyc_byte_mem` (byte-addressed, prototype)
 
-- Verilog: `module pyc_byte_mem #(ADDR_WIDTH, DATA_WIDTH, DEPTH) (...)` (`include/pyc/verilog/pyc_byte_mem.sv`)
+- Verilog: `module pyc_byte_mem #(ADDR_WIDTH, DATA_WIDTH, DEPTH) (...)` (`include/pyc/verilog/pyc_byte_mem.v`)
 - C++: `pyc::cpp::pyc_byte_mem<AddrWidth, DataWidth, DepthBytes>` (`include/pyc/cpp/pyc_byte_mem.hpp`)
 
 Semantics (prototype):

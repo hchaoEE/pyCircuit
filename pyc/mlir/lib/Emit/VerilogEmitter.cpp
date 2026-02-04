@@ -9,27 +9,31 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Value.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringRef.h"
+
+#include <algorithm>
+#include <vector>
 
 using namespace mlir;
 
 namespace pyc {
 namespace {
 
-static std::string svType(Type ty) {
+static std::string vRange(Type ty) {
+  // Clocks/resets are treated as 1-bit scalar ports/nets in Verilog.
   if (isa<pyc::ClockType>(ty) || isa<pyc::ResetType>(ty))
-    return "logic";
+    return "";
   auto intTy = dyn_cast<IntegerType>(ty);
   if (!intTy)
-    return "logic";
-  if (intTy.getWidth() == 1)
-    return "logic";
-  return "logic [" + std::to_string(intTy.getWidth() - 1) + ":0]";
+    return "";
+  if (intTy.getWidth() <= 1)
+    return "";
+  return "[" + std::to_string(intTy.getWidth() - 1) + ":0]";
 }
 
-static std::string svLiteral(IntegerAttr a, Type dstTy) {
+static std::string vLiteral(IntegerAttr a, Type dstTy) {
   auto intTy = dyn_cast<IntegerType>(dstTy);
   if (!intTy)
     return "0";
@@ -77,7 +81,6 @@ struct NameTable {
       std::string base = sanitizeId(def->getName().getStringRef());
       if (base.empty())
         base = "v";
-      // Make the name stable and unique within this module.
       base += "_" + std::to_string(++next);
       std::string cand = unique(base);
       names.try_emplace(v, cand);
@@ -90,21 +93,25 @@ struct NameTable {
 };
 
 static std::string getPortName(func::FuncOp f, unsigned idx, bool isResult) {
-  // Prefer explicit name lists emitted by the Python frontend.
+  std::string raw;
   if (!isResult) {
     if (auto names = f->getAttrOfType<ArrayAttr>("arg_names")) {
       if (idx < names.size())
         if (auto s = dyn_cast<StringAttr>(names[idx]))
-          return s.getValue().str();
+          raw = s.getValue().str();
     }
-    return "arg" + std::to_string(idx);
+    if (raw.empty())
+      raw = "arg" + std::to_string(idx);
+    return sanitizeId(raw);
   }
   if (auto names = f->getAttrOfType<ArrayAttr>("result_names")) {
     if (idx < names.size())
       if (auto s = dyn_cast<StringAttr>(names[idx]))
-        return s.getValue().str();
+        raw = s.getValue().str();
   }
-  return "out" + std::to_string(idx);
+  if (raw.empty())
+    raw = "out" + std::to_string(idx);
+  return sanitizeId(raw);
 }
 
 static LogicalResult emitComb(pyc::CombOp comb, raw_ostream &os, NameTable &nt) {
@@ -122,7 +129,7 @@ static LogicalResult emitComb(pyc::CombOp comb, raw_ostream &os, NameTable &nt) 
       break;
 
     if (auto c = dyn_cast<pyc::ConstantOp>(op)) {
-      os << "assign " << nt.get(c.getResult()) << " = " << svLiteral(c.getValueAttr(), c.getType()) << ";\n";
+      os << "assign " << nt.get(c.getResult()) << " = " << vLiteral(c.getValueAttr(), c.getType()) << ";\n";
       continue;
     }
     if (auto a = dyn_cast<pyc::AliasOp>(op)) {
@@ -142,8 +149,8 @@ static LogicalResult emitComb(pyc::CombOp comb, raw_ostream &os, NameTable &nt) 
     if (auto s = dyn_cast<arith::SelectOp>(op)) {
       if (!s.getCondition().getType().isInteger(1))
         return s.emitError("verilog emitter only supports arith.select with i1 condition");
-      os << "assign " << nt.get(s.getResult()) << " = (" << nt.get(s.getCondition()) << " ? " << nt.get(s.getTrueValue())
-         << " : " << nt.get(s.getFalseValue()) << ");\n";
+      os << "assign " << nt.get(s.getResult()) << " = (" << nt.get(s.getCondition()) << " ? "
+         << nt.get(s.getTrueValue()) << " : " << nt.get(s.getFalseValue()) << ");\n";
       continue;
     }
     if (auto a = dyn_cast<pyc::AndOp>(op)) {
@@ -257,8 +264,130 @@ static LogicalResult emitComb(pyc::CombOp comb, raw_ostream &os, NameTable &nt) 
   return success();
 }
 
+struct NetDecl {
+  std::string name;
+  Type ty;
+  std::string comment;
+};
+
+static std::string opSortKey(Operation *op, NameTable &nt) {
+  if (auto a = dyn_cast<pyc::AssignOp>(op))
+    return nt.get(a.getDst());
+  if (auto mem = dyn_cast<pyc::ByteMemOp>(op)) {
+    if (auto nameAttr = mem->getAttrOfType<StringAttr>("name"))
+      return sanitizeId(nameAttr.getValue());
+    return nt.get(mem.getRdata());
+  }
+  if (!op->getResults().empty())
+    return nt.get(op->getResult(0));
+  return "";
+}
+
+static bool topoSortCombOps(ArrayRef<Operation *> ops, NameTable &nt, llvm::SmallVectorImpl<Operation *> &ordered) {
+  ordered.clear();
+  if (ops.empty())
+    return true;
+
+  llvm::SmallVector<std::string> nodeKey;
+  nodeKey.reserve(ops.size());
+  llvm::DenseMap<Operation *, unsigned> nodeIndex;
+  nodeIndex.reserve(ops.size());
+  for (auto [i, op] : llvm::enumerate(ops)) {
+    nodeIndex.try_emplace(op, static_cast<unsigned>(i));
+    nodeKey.push_back(opSortKey(op, nt));
+  }
+
+  llvm::DenseMap<Value, unsigned> valueProducer;
+  llvm::DenseMap<Value, unsigned> wireAssign;
+  llvm::DenseMap<Value, unsigned> wireAssignCount;
+
+  for (auto [idx, op] : llvm::enumerate(ops)) {
+    for (Value r : op->getResults())
+      valueProducer.try_emplace(r, static_cast<unsigned>(idx));
+
+    if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
+      Value dst = a.getDst();
+      unsigned &cnt = wireAssignCount[dst];
+      cnt++;
+      if (cnt == 1)
+        wireAssign[dst] = static_cast<unsigned>(idx);
+    }
+  }
+
+  // Verilog does not support multiple continuous drivers for a single net in this prototype.
+  for (auto &it : wireAssignCount) {
+    if (it.second > 1)
+      return false;
+  }
+  for (auto &it : wireAssign)
+    valueProducer[it.first] = it.second;
+
+  llvm::SmallVector<llvm::SmallVector<unsigned>> succ(ops.size());
+  llvm::SmallVector<unsigned> indeg(ops.size(), 0);
+
+  for (auto it : llvm::enumerate(ops)) {
+    unsigned idx = it.index();
+    Operation *op = it.value();
+
+    llvm::SmallSet<unsigned, 8> deps;
+    auto addDep = [&](Value v) {
+      auto it = valueProducer.find(v);
+      if (it == valueProducer.end())
+        return;
+      unsigned p = it->second;
+      if (p == idx)
+        return;
+      deps.insert(p);
+    };
+
+    if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
+      addDep(a.getSrc());
+    } else {
+      for (Value v : op->getOperands())
+        addDep(v);
+    }
+
+    indeg[idx] = static_cast<unsigned>(deps.size());
+    for (unsigned p : deps)
+      succ[p].push_back(static_cast<unsigned>(idx));
+  }
+
+  auto cmp = [&](unsigned a, unsigned b) { return nodeKey[a] > nodeKey[b]; };
+  std::vector<unsigned> heap;
+  heap.reserve(ops.size());
+  for (unsigned i = 0; i < ops.size(); ++i)
+    if (indeg[i] == 0)
+      heap.push_back(i);
+  std::make_heap(heap.begin(), heap.end(), cmp);
+
+  llvm::SmallVector<unsigned> out;
+  out.reserve(ops.size());
+  while (!heap.empty()) {
+    std::pop_heap(heap.begin(), heap.end(), cmp);
+    unsigned n = heap.back();
+    heap.pop_back();
+    out.push_back(n);
+    for (unsigned s : succ[n]) {
+      if (--indeg[s] == 0) {
+        heap.push_back(s);
+        std::push_heap(heap.begin(), heap.end(), cmp);
+      }
+    }
+  }
+
+  if (out.size() != ops.size())
+    return false;
+
+  for (unsigned idx : out)
+    ordered.push_back(ops[idx]);
+  return true;
+}
+
 static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmitterOptions &opts) {
+  (void)opts;
   NameTable nt;
+  std::vector<std::string> outNames;
+  outNames.reserve(f.getNumResults());
 
   os << "// Generated by pyc-compile (pyCircuit)\n";
   os << "// Module: " << f.getSymName() << "\n\n";
@@ -266,49 +395,141 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
   // Module header.
   os << "module " << f.getSymName() << " (\n";
   for (auto [i, arg] : llvm::enumerate(f.getArguments())) {
-    std::string dir = "input ";
-    os << "  " << dir << svType(arg.getType()) << " " << getPortName(f, i, /*isResult=*/false);
+    std::string portName = nt.unique(getPortName(f, i, /*isResult=*/false));
+    std::string range = vRange(arg.getType());
+    os << "  input ";
+    if (!range.empty())
+      os << range << " ";
+    os << portName;
     os << ((i + 1 == f.getNumArguments() && f.getNumResults() == 0) ? "\n" : ",\n");
-    nt.names.try_emplace(arg, getPortName(f, i, /*isResult=*/false));
+    nt.names.try_emplace(arg, portName);
   }
   for (unsigned i = 0; i < f.getNumResults(); ++i) {
-    std::string dir = "output ";
-    os << "  " << dir << svType(f.getResultTypes()[i]) << " " << getPortName(f, i, /*isResult=*/true);
+    std::string portName = nt.unique(getPortName(f, i, /*isResult=*/true));
+    outNames.push_back(portName);
+    std::string range = vRange(f.getResultTypes()[i]);
+    os << "  output ";
+    if (!range.empty())
+      os << range << " ";
+    os << portName;
     os << ((i + 1 == f.getNumResults()) ? "\n" : ",\n");
   }
   os << ");\n\n";
 
-  // Declare internal nets for op results.
+  // Declare internal nets for op results (including results inside pyc.comb regions).
+  std::vector<NetDecl> decls;
+  decls.reserve(256);
   f.walk([&](Operation *op) {
     for (Value r : op->getResults()) {
-      std::string n = nt.get(r);
-      os << svType(r.getType()) << " " << n << ";";
-      if (auto nAttr = op->getAttrOfType<StringAttr>("pyc.name")) {
-        os << " // pyc.name=\"" << nAttr.getValue() << "\"";
-      } else {
-        os << " // op=" << op->getName().getStringRef();
-      }
-      os << "\n";
+      NetDecl d;
+      d.name = nt.get(r);
+      d.ty = r.getType();
+      if (auto nAttr = op->getAttrOfType<StringAttr>("pyc.name"))
+        d.comment = "pyc.name=\"" + nAttr.getValue().str() + "\"";
+      else
+        d.comment = "op=" + op->getName().getStringRef().str();
+      decls.push_back(std::move(d));
     }
   });
+  std::sort(decls.begin(), decls.end(), [](const NetDecl &a, const NetDecl &b) { return a.name < b.name; });
+  for (const NetDecl &d : decls) {
+    std::string range = vRange(d.ty);
+    os << "wire ";
+    if (!range.empty())
+      os << range << " ";
+    os << d.name << ";";
+    if (!d.comment.empty())
+      os << " // " << d.comment;
+    os << "\n";
+  }
   os << "\n";
 
-  // Emit combinational assigns and sequential blocks.
+  // Collect top-level ops for netlist-friendly emission.
+  llvm::SmallVector<Operation *> combAssignOps;
+  llvm::SmallVector<Operation *> seqInstOps;
+
   for (Block &b : f.getBody()) {
     for (Operation &op : b) {
       if (isa<func::ReturnOp>(op))
         continue;
+      if (isa<pyc::WireOp>(op))
+        continue;
 
-      if (auto c = dyn_cast<pyc::ConstantOp>(op)) {
-        os << "assign " << nt.get(c.getResult()) << " = " << svLiteral(c.getValueAttr(), c.getType()) << ";\n";
+      if (isa<pyc::ConstantOp,
+              pyc::AliasOp,
+              pyc::AddOp,
+              pyc::MuxOp,
+              pyc::AndOp,
+              pyc::OrOp,
+              pyc::XorOp,
+              pyc::NotOp,
+              pyc::AssignOp,
+              pyc::CombOp,
+              arith::SelectOp,
+              pyc::EqOp,
+              pyc::TruncOp,
+              pyc::ZextOp,
+              pyc::SextOp,
+              pyc::ExtractOp,
+              pyc::ShliOp,
+              pyc::ConcatOp>(op)) {
+        combAssignOps.push_back(&op);
         continue;
       }
-      if (isa<pyc::WireOp>(op)) {
-        // Declaration is handled by the internal net pass; assignment comes from `pyc.assign`.
+      if (isa<pyc::RegOp, pyc::FifoOp, pyc::ByteMemOp>(op)) {
+        seqInstOps.push_back(&op);
+        continue;
+      }
+      return op.emitError("unsupported op for verilog emission: ") << op.getName();
+    }
+  }
+
+  auto cmp = [&](Operation *a, Operation *b) { return opSortKey(a, nt) < opSortKey(b, nt); };
+  std::sort(seqInstOps.begin(), seqInstOps.end(), cmp);
+  llvm::SmallVector<Operation *> orderedComb;
+  if (!topoSortCombOps(combAssignOps, nt, orderedComb))
+    std::sort(combAssignOps.begin(), combAssignOps.end(), cmp);
+  else
+    combAssignOps.assign(orderedComb.begin(), orderedComb.end());
+
+  if (!combAssignOps.empty()) {
+    os << "// --- Combinational (netlist)\n";
+    for (Operation *op : combAssignOps) {
+      if (auto c = dyn_cast<pyc::ConstantOp>(op)) {
+        os << "assign " << nt.get(c.getResult()) << " = " << vLiteral(c.getValueAttr(), c.getType()) << ";\n";
         continue;
       }
       if (auto a = dyn_cast<pyc::AliasOp>(op)) {
         os << "assign " << nt.get(a.getResult()) << " = " << nt.get(a.getIn()) << ";\n";
+        continue;
+      }
+      if (auto a = dyn_cast<pyc::AddOp>(op)) {
+        os << "assign " << nt.get(a.getResult()) << " = (" << nt.get(a.getLhs()) << " + " << nt.get(a.getRhs())
+           << ");\n";
+        continue;
+      }
+      if (auto m = dyn_cast<pyc::MuxOp>(op)) {
+        os << "assign " << nt.get(m.getResult()) << " = (" << nt.get(m.getSel()) << " ? " << nt.get(m.getA())
+           << " : " << nt.get(m.getB()) << ");\n";
+        continue;
+      }
+      if (auto a = dyn_cast<pyc::AndOp>(op)) {
+        os << "assign " << nt.get(a.getResult()) << " = (" << nt.get(a.getLhs()) << " & " << nt.get(a.getRhs())
+           << ");\n";
+        continue;
+      }
+      if (auto o = dyn_cast<pyc::OrOp>(op)) {
+        os << "assign " << nt.get(o.getResult()) << " = (" << nt.get(o.getLhs()) << " | " << nt.get(o.getRhs())
+           << ");\n";
+        continue;
+      }
+      if (auto x = dyn_cast<pyc::XorOp>(op)) {
+        os << "assign " << nt.get(x.getResult()) << " = (" << nt.get(x.getLhs()) << " ^ " << nt.get(x.getRhs())
+           << ");\n";
+        continue;
+      }
+      if (auto n = dyn_cast<pyc::NotOp>(op)) {
+        os << "assign " << nt.get(n.getResult()) << " = (~" << nt.get(n.getIn()) << ");\n";
         continue;
       }
       if (auto a = dyn_cast<pyc::AssignOp>(op)) {
@@ -323,8 +544,8 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
       if (auto s = dyn_cast<arith::SelectOp>(op)) {
         if (!s.getCondition().getType().isInteger(1))
           return s.emitError("verilog emitter only supports arith.select with i1 condition");
-        os << "assign " << nt.get(s.getResult()) << " = (" << nt.get(s.getCondition()) << " ? " << nt.get(s.getTrueValue())
-           << " : " << nt.get(s.getFalseValue()) << ");\n";
+        os << "assign " << nt.get(s.getResult()) << " = (" << nt.get(s.getCondition()) << " ? "
+           << nt.get(s.getTrueValue()) << " : " << nt.get(s.getFalseValue()) << ");\n";
         continue;
       }
       if (auto e = dyn_cast<pyc::EqOp>(op)) {
@@ -374,8 +595,9 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
         continue;
       }
       if (auto ex = dyn_cast<pyc::ExtractOp>(op)) {
+        auto inTy = dyn_cast<IntegerType>(ex.getIn().getType());
         auto outTy = dyn_cast<IntegerType>(ex.getResult().getType());
-        if (!outTy)
+        if (!inTy || !outTy)
           return ex.emitError("verilog emitter only supports integer extract");
         unsigned ow = outTy.getWidth();
         std::int64_t lsb = ex.getLsbAttr().getInt();
@@ -402,72 +624,14 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
         os << "};\n";
         continue;
       }
-      if (auto a = dyn_cast<pyc::AddOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(a.getResult().getType());
-        if (!yTy)
-          return a.emitError("verilog emitter only supports integer add data type");
-        os << "pyc_add #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(a.getResult()) << "_inst (\n";
-        os << "  .a(" << nt.get(a.getLhs()) << "),\n";
-        os << "  .b(" << nt.get(a.getRhs()) << "),\n";
-        os << "  .y(" << nt.get(a.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
-      if (auto m = dyn_cast<pyc::MuxOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(m.getResult().getType());
-        if (!yTy)
-          return m.emitError("verilog emitter only supports integer mux data type");
-        os << "pyc_mux #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(m.getResult()) << "_inst (\n";
-        os << "  .sel(" << nt.get(m.getSel()) << "),\n";
-        os << "  .a(" << nt.get(m.getA()) << "),\n";
-        os << "  .b(" << nt.get(m.getB()) << "),\n";
-        os << "  .y(" << nt.get(m.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
-      if (auto a = dyn_cast<pyc::AndOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(a.getResult().getType());
-        if (!yTy)
-          return a.emitError("verilog emitter only supports integer and data type");
-        os << "pyc_and #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(a.getResult()) << "_inst (\n";
-        os << "  .a(" << nt.get(a.getLhs()) << "),\n";
-        os << "  .b(" << nt.get(a.getRhs()) << "),\n";
-        os << "  .y(" << nt.get(a.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
-      if (auto o = dyn_cast<pyc::OrOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(o.getResult().getType());
-        if (!yTy)
-          return o.emitError("verilog emitter only supports integer or data type");
-        os << "pyc_or #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(o.getResult()) << "_inst (\n";
-        os << "  .a(" << nt.get(o.getLhs()) << "),\n";
-        os << "  .b(" << nt.get(o.getRhs()) << "),\n";
-        os << "  .y(" << nt.get(o.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
-      if (auto x = dyn_cast<pyc::XorOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(x.getResult().getType());
-        if (!yTy)
-          return x.emitError("verilog emitter only supports integer xor data type");
-        os << "pyc_xor #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(x.getResult()) << "_inst (\n";
-        os << "  .a(" << nt.get(x.getLhs()) << "),\n";
-        os << "  .b(" << nt.get(x.getRhs()) << "),\n";
-        os << "  .y(" << nt.get(x.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
-      if (auto n = dyn_cast<pyc::NotOp>(op)) {
-        auto yTy = dyn_cast<IntegerType>(n.getResult().getType());
-        if (!yTy)
-          return n.emitError("verilog emitter only supports integer not data type");
-        os << "pyc_not #(.WIDTH(" << yTy.getWidth() << ")) " << nt.get(n.getResult()) << "_inst (\n";
-        os << "  .a(" << nt.get(n.getIn()) << "),\n";
-        os << "  .y(" << nt.get(n.getResult()) << ")\n";
-        os << ");\n";
-        continue;
-      }
+      return op->emitError("internal error: missing verilog emission handler");
+    }
+    os << "\n";
+  }
+
+  if (!seqInstOps.empty()) {
+    os << "// --- Sequential primitives\n";
+    for (Operation *op : seqInstOps) {
       if (auto r = dyn_cast<pyc::RegOp>(op)) {
         auto qTy = dyn_cast<IntegerType>(r.getQ().getType());
         if (!qTy)
@@ -513,7 +677,7 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
 
         std::string inst = nt.get(mem.getRdata()) + "_inst";
         if (auto nameAttr = mem->getAttrOfType<StringAttr>("name"))
-          inst = nameAttr.getValue().str();
+          inst = sanitizeId(nameAttr.getValue());
 
         os << "pyc_byte_mem #(.ADDR_WIDTH(" << addrTy.getWidth() << "), .DATA_WIDTH(" << dataTy.getWidth() << "), .DEPTH("
            << depth << ")) " << inst << " (\n";
@@ -528,9 +692,9 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
         os << ");\n";
         continue;
       }
-
-      return op.emitError("unsupported op for verilog emission: ") << op.getName();
+      return op->emitError("internal error: missing verilog sequential primitive emission handler");
     }
+    os << "\n";
   }
 
   // Connect outputs from return.
@@ -538,7 +702,9 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
   if (!ret)
     return f.emitError("missing return");
   for (auto [i, v] : llvm::enumerate(ret.getOperands())) {
-    os << "assign " << getPortName(f, i, /*isResult=*/true) << " = " << nt.get(v) << ";\n";
+    if (nt.get(v) == outNames[i])
+      continue;
+    os << "assign " << outNames[i] << " = " << nt.get(v) << ";\n";
   }
 
   os << "\nendmodule\n\n";
@@ -549,18 +715,11 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
 
 LogicalResult emitVerilog(ModuleOp module, llvm::raw_ostream &os, const VerilogEmitterOptions &opts) {
   if (opts.includePrimitives) {
-    os << "`include \"pyc_add.sv\"\n";
-    os << "`include \"pyc_mux.sv\"\n";
-    os << "`include \"pyc_and.sv\"\n";
-    os << "`include \"pyc_or.sv\"\n";
-    os << "`include \"pyc_xor.sv\"\n";
-    os << "`include \"pyc_not.sv\"\n";
-    os << "`include \"pyc_reg.sv\"\n";
-    os << "`include \"pyc_fifo.sv\"\n\n";
-    os << "`include \"pyc_byte_mem.sv\"\n\n";
+    os << "`include \"pyc_reg.v\"\n";
+    os << "`include \"pyc_fifo.v\"\n\n";
+    os << "`include \"pyc_byte_mem.v\"\n\n";
   }
 
-  // Emit all functions as SystemVerilog modules (prototype convention).
   for (auto f : module.getOps<func::FuncOp>()) {
     if (failed(emitFunc(f, os, opts)))
       return failure();

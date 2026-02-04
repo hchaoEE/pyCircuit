@@ -2,7 +2,7 @@
 
 This document is the practical “how to write real designs” guide for pyCircuit.
 It focuses on the Python frontend, the JIT/SCF rules, and how to debug what you
-generate in SystemVerilog and C++.
+generate in Verilog and C++.
 
 > Key idea: write **sequential-looking** Python that is compiled into a **static**
 > hardware circuit (parallel combinational logic + clocked state).
@@ -135,7 +135,7 @@ bus0 = cat(a, b, c)   # MSB-first (Verilog-style)
 bus1 = m.cat(a, b, c) # same, using the Circuit builder
 ```
 
-Under the hood this lowers to `pyc.concat`, so the SV backend emits a readable
+Under the hood this lowers to `pyc.concat`, so the Verilog backend emits a readable
 `{a, b, c}` packed concatenation instead of shift/or glue logic.
 
 You can unpack with slices or via `Bundle`/`Vec` helpers (next sections).
@@ -227,7 +227,7 @@ This preserves consistent name mangling:
 - Assigning to a Python variable in JIT code usually creates a `pyc.alias`
   with a stable name that includes `file:line`.
 
-Generated SV/C++ tries to keep readable identifiers:
+Generated Verilog/C++ tries to keep readable identifiers:
 
 - If a value has a `pyc.name`, it becomes the identifier.
 - Otherwise, the emitter falls back to op-based names (e.g. `pyc_add_123`).

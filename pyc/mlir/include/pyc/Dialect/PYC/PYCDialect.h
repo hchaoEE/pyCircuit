@@ -2,6 +2,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/Builders.h"
 #include "llvm/ADT/StringRef.h"
 
 namespace pyc {
@@ -15,6 +16,9 @@ public:
 
   ::mlir::Type parseType(::mlir::DialectAsmParser &parser) const override;
   void printType(::mlir::Type type, ::mlir::DialectAsmPrinter &printer) const override;
+
+  ::mlir::Operation *materializeConstant(::mlir::OpBuilder &builder, ::mlir::Attribute value, ::mlir::Type type,
+                                        ::mlir::Location loc) override;
 };
 
 } // namespace pyc

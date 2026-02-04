@@ -9,9 +9,13 @@
 #include "mlir/IR/Types.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <algorithm>
+#include <vector>
 
 using namespace mlir;
 
@@ -257,21 +261,35 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
   os << "struct " << structName << " {\n";
 
   // Ports.
+  std::vector<std::string> outNames;
+  outNames.reserve(f.getNumResults());
   for (auto [i, arg] : llvm::enumerate(f.getArguments())) {
-    std::string name = getPortName(f, i, /*isResult=*/false);
+    std::string name = nt.unique(getPortName(f, i, /*isResult=*/false));
     nt.names.try_emplace(arg, name);
     os << "  " << cppType(arg.getType()) << " " << name << "{};\n";
   }
   for (unsigned i = 0; i < f.getNumResults(); ++i) {
-    os << "  " << cppType(f.getResultTypes()[i]) << " " << getPortName(f, i, /*isResult=*/true) << "{};\n";
+    std::string name = nt.unique(getPortName(f, i, /*isResult=*/true));
+    outNames.push_back(name);
+    os << "  " << cppType(f.getResultTypes()[i]) << " " << name << "{};\n";
   }
   os << "\n";
 
   // Internal wires for op results (including inside pyc.comb regions).
+  struct Decl {
+    std::string name;
+    Type ty;
+  };
+  std::vector<Decl> decls;
+  decls.reserve(256);
   f.walk([&](Operation *op) {
-    for (Value r : op->getResults())
-      os << "  " << cppType(r.getType()) << " " << nt.get(r) << "{};\n";
+    for (Value r : op->getResults()) {
+      decls.push_back(Decl{nt.get(r), r.getType()});
+    }
   });
+  std::sort(decls.begin(), decls.end(), [](const Decl &a, const Decl &b) { return a.name < b.name; });
+  for (const Decl &d : decls)
+    os << "  " << cppType(d.ty) << " " << d.name << "{};\n";
   os << "\n";
 
   // Sequential primitive instances.
@@ -290,6 +308,20 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
     else if (auto comb = dyn_cast<pyc::CombOp>(op))
       combs.push_back(comb);
   }
+
+  auto regKey = [&](pyc::RegOp r) { return nt.get(r.getQ()); };
+  auto fifoKey = [&](pyc::FifoOp f) { return nt.get(f.getInReady()); };
+  auto memKey = [&](pyc::ByteMemOp m) -> std::string {
+    if (auto nameAttr = m->getAttrOfType<StringAttr>("name"))
+      return sanitizeId(nameAttr.getValue());
+    return nt.get(m.getRdata());
+  };
+
+  std::sort(regs.begin(), regs.end(), [&](pyc::RegOp a, pyc::RegOp b) { return regKey(a) < regKey(b); });
+  std::sort(fifos.begin(), fifos.end(), [&](pyc::FifoOp a, pyc::FifoOp b) { return fifoKey(a) < fifoKey(b); });
+  std::sort(byteMems.begin(), byteMems.end(), [&](pyc::ByteMemOp a, pyc::ByteMemOp b) { return memKey(a) < memKey(b); });
+  auto combKey = [&](pyc::CombOp c) { return nt.get(c.getResult(0)); };
+  std::sort(combs.begin(), combs.end(), [&](pyc::CombOp a, pyc::CombOp b) { return combKey(a) < combKey(b); });
 
   llvm::DenseMap<Operation *, std::string> byteMemInstName;
 
@@ -379,31 +411,151 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
   for (auto [i, comb] : llvm::enumerate(combs))
     combIndex.try_emplace(comb.getOperation(), static_cast<unsigned>(i));
 
+  auto topoOrder = [&](bool includePrims, llvm::SmallVector<Operation *> &ordered) -> bool {
+    ordered.clear();
+
+    llvm::SmallVector<Operation *> nodes;
+    llvm::SmallVector<std::string> nodeKey;
+    llvm::DenseMap<Operation *, unsigned> nodeIndex;
+
+    auto shouldInclude = [&](Operation &op) -> bool {
+      if (isa<func::ReturnOp>(op) || isa<pyc::WireOp>(op) || isa<pyc::RegOp>(op))
+        return false;
+      if (!includePrims && (isa<pyc::FifoOp>(op) || isa<pyc::ByteMemOp>(op)))
+        return false;
+      return true;
+    };
+
+    for (Operation &op : top) {
+      if (!shouldInclude(op))
+        continue;
+      unsigned idx = static_cast<unsigned>(nodes.size());
+      nodes.push_back(&op);
+      nodeIndex.try_emplace(&op, idx);
+
+      std::string k;
+      if (auto a = dyn_cast<pyc::AssignOp>(op))
+        k = nt.get(a.getDst());
+      else if (op.getNumResults() > 0)
+        k = nt.get(op.getResult(0));
+      else
+        k = sanitizeId(op.getName().getStringRef()) + "_" + std::to_string(idx);
+      nodeKey.push_back(std::move(k));
+    }
+
+    llvm::DenseMap<Value, unsigned> valueProducer;
+    llvm::DenseMap<Value, unsigned> wireAssign;
+    llvm::DenseMap<Value, unsigned> wireAssignCount;
+
+    for (auto [idx, op] : llvm::enumerate(nodes)) {
+      for (Value r : op->getResults())
+        valueProducer.try_emplace(r, static_cast<unsigned>(idx));
+
+      if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
+        Value dst = a.getDst();
+        unsigned &cnt = wireAssignCount[dst];
+        cnt++;
+        if (cnt == 1)
+          wireAssign[dst] = static_cast<unsigned>(idx);
+      }
+    }
+
+    // Multiple drivers to the same wire are not supported by the topo scheduler
+    // (imperative evaluation becomes ambiguous); fall back to the legacy fixpoint.
+    for (auto &it : wireAssignCount) {
+      if (it.second > 1)
+        return false;
+    }
+    for (auto &it : wireAssign)
+      valueProducer[it.first] = it.second;
+
+    llvm::SmallVector<llvm::SmallVector<unsigned>> succ(nodes.size());
+    llvm::SmallVector<unsigned> indeg(nodes.size(), 0);
+
+    for (auto it : llvm::enumerate(nodes)) {
+      unsigned idx = it.index();
+      Operation *op = it.value();
+
+      llvm::SmallSet<unsigned, 8> deps;
+      auto addDep = [&](Value v) {
+        auto it = valueProducer.find(v);
+        if (it == valueProducer.end())
+          return;
+        unsigned p = it->second;
+        if (p == idx)
+          return;
+        deps.insert(p);
+      };
+
+      if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
+        addDep(a.getSrc());
+      } else {
+        for (Value v : op->getOperands())
+          addDep(v);
+      }
+
+      indeg[idx] = static_cast<unsigned>(deps.size());
+      for (unsigned p : deps)
+        succ[p].push_back(static_cast<unsigned>(idx));
+    }
+
+    auto cmp = [&](unsigned a, unsigned b) { return nodeKey[a] > nodeKey[b]; };
+    std::vector<unsigned> heap;
+    heap.reserve(nodes.size());
+    for (unsigned i = 0; i < nodes.size(); ++i)
+      if (indeg[i] == 0)
+        heap.push_back(i);
+    std::make_heap(heap.begin(), heap.end(), cmp);
+
+    llvm::SmallVector<unsigned> out;
+    out.reserve(nodes.size());
+    while (!heap.empty()) {
+      std::pop_heap(heap.begin(), heap.end(), cmp);
+      unsigned n = heap.back();
+      heap.pop_back();
+      out.push_back(n);
+      for (unsigned s : succ[n]) {
+        if (--indeg[s] == 0) {
+          heap.push_back(s);
+          std::push_heap(heap.begin(), heap.end(), cmp);
+        }
+      }
+    }
+
+    if (out.size() != nodes.size())
+      return false;
+
+    for (unsigned idx : out)
+      ordered.push_back(nodes[idx]);
+    return true;
+  };
+
   // eval_comb_pass(): evaluate all combinational ops/assigns.
   //
   // Note: The IR is allowed to have "late" pyc.assign ops (e.g. queue wrappers
   // that defer wiring). To keep C++ simulation correct, eval() runs a small
   // fixed-point iteration that alternates comb evaluation and primitive eval.
   os << "  inline void eval_comb_pass() {\n";
-  for (Operation &op : top) {
-    if (isa<func::ReturnOp>(op))
-      continue;
-    if (isa<pyc::WireOp>(op))
-      continue;
-    if (auto a = dyn_cast<pyc::AssignOp>(op)) {
+  llvm::SmallVector<Operation *> ordered;
+  if (!topoOrder(/*includePrims=*/false, ordered)) {
+    for (Operation &op : top) {
+      if (isa<func::ReturnOp>(op) || isa<pyc::WireOp>(op))
+        continue;
+      ordered.push_back(&op);
+    }
+  }
+
+  for (Operation *op : ordered) {
+    if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
       os << "    " << nt.get(a.getDst()) << " = " << nt.get(a.getSrc()) << ";\n";
       continue;
     }
-    if (auto comb = dyn_cast<pyc::CombOp>(op)) {
+    if (auto comb = dyn_cast<pyc::CombOp>(*op)) {
       os << "    eval_comb_" << combIndex.lookup(comb.getOperation()) << "();\n";
       continue;
     }
-    if (auto c = dyn_cast<pyc::ConstantOp>(op)) {
-      if (failed(emitCombAssign(op, os, nt)))
-        return failure();
-      continue;
-    }
-    if (isa<pyc::AddOp,
+    if (isa<pyc::ConstantOp,
+            pyc::AddOp,
             pyc::MuxOp,
             pyc::AndOp,
             pyc::OrOp,
@@ -417,39 +569,80 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
             pyc::SextOp,
             pyc::ExtractOp,
             pyc::ShliOp,
-            arith::SelectOp>(op)) {
-      if (failed(emitCombAssign(op, os, nt)))
+            arith::SelectOp>(*op)) {
+      if (failed(emitCombAssign(*op, os, nt)))
         return failure();
       continue;
     }
-    if (isa<pyc::FifoOp, pyc::ByteMemOp, pyc::RegOp>(op)) {
+    if (isa<pyc::FifoOp, pyc::ByteMemOp, pyc::RegOp>(*op)) {
       // Primitives are evaluated in eval(), and regs only tick.
       continue;
     }
-    return op.emitError("unsupported op for C++ emission: ") << op.getName();
+    if (isa<func::ReturnOp, pyc::WireOp>(*op))
+      continue;
+    return op->emitError("unsupported op for C++ emission: ") << op->getName();
   }
   os << "  }\n\n";
 
-  // eval(): alternate comb and primitive eval to tolerate non-topologically-
-  // ordered assigns (prototype netlist scheduling).
-  os << "  void eval() {\n";
-  os << "    eval_comb_pass();\n";
+  llvm::SmallVector<Operation *> fullOrdered;
+  bool hasFullTopo = topoOrder(/*includePrims=*/true, fullOrdered);
 
-  unsigned numPrims = static_cast<unsigned>(fifos.size() + byteMems.size());
-  if (numPrims > 0) {
-    os << "    for (unsigned _i = 0; _i < " << numPrims << "u; ++_i) {\n";
-    for (Operation &op : top) {
-      if (auto fifo = dyn_cast<pyc::FifoOp>(op)) {
-        os << "      " << nt.get(fifo.getInReady()) << "_inst.eval();\n";
+  // eval(): attempt a single-pass topological netlist schedule; if the graph has
+  // cycles, fall back to a small fixed-point iteration (legacy behavior).
+  os << "  void eval() {\n";
+  if (hasFullTopo) {
+    for (Operation *op : fullOrdered) {
+      if (auto fifo = dyn_cast<pyc::FifoOp>(*op)) {
+        os << "    " << nt.get(fifo.getInReady()) << "_inst.eval();\n";
         continue;
       }
-      if (auto mem = dyn_cast<pyc::ByteMemOp>(op)) {
-        os << "      " << byteMemInstName.lookup(mem.getOperation()) << ".eval();\n";
+      if (auto mem = dyn_cast<pyc::ByteMemOp>(*op)) {
+        os << "    " << byteMemInstName.lookup(mem.getOperation()) << ".eval();\n";
         continue;
       }
+      if (auto a = dyn_cast<pyc::AssignOp>(*op)) {
+        os << "    " << nt.get(a.getDst()) << " = " << nt.get(a.getSrc()) << ";\n";
+        continue;
+      }
+      if (auto comb = dyn_cast<pyc::CombOp>(*op)) {
+        os << "    eval_comb_" << combIndex.lookup(comb.getOperation()) << "();\n";
+        continue;
+      }
+      if (isa<pyc::ConstantOp,
+              pyc::AddOp,
+              pyc::MuxOp,
+              pyc::AndOp,
+              pyc::OrOp,
+              pyc::XorOp,
+              pyc::NotOp,
+              pyc::ConcatOp,
+              pyc::AliasOp,
+              pyc::EqOp,
+              pyc::TruncOp,
+              pyc::ZextOp,
+              pyc::SextOp,
+              pyc::ExtractOp,
+              pyc::ShliOp,
+              arith::SelectOp>(*op)) {
+        if (failed(emitCombAssign(*op, os, nt)))
+          return failure();
+        continue;
+      }
+      return op->emitError("unsupported op for C++ emission: ") << op->getName();
     }
-    os << "      eval_comb_pass();\n";
-    os << "    }\n";
+  } else {
+    os << "    eval_comb_pass();\n";
+
+    unsigned numPrims = static_cast<unsigned>(fifos.size() + byteMems.size());
+    if (numPrims > 0) {
+      os << "    for (unsigned _i = 0; _i < " << numPrims << "u; ++_i) {\n";
+      for (auto fifo : fifos)
+        os << "      " << nt.get(fifo.getInReady()) << "_inst.eval();\n";
+      for (auto mem : byteMems)
+        os << "      " << byteMemInstName.lookup(mem.getOperation()) << ".eval();\n";
+      os << "      eval_comb_pass();\n";
+      os << "    }\n";
+    }
   }
 
   // Connect return values to output ports.
@@ -457,7 +650,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
   if (!ret)
     return f.emitError("missing return");
   for (auto [i, v] : llvm::enumerate(ret.getOperands()))
-    os << "    " << getPortName(f, i, /*isResult=*/true) << " = " << nt.get(v) << ";\n";
+    os << "    " << outNames[i] << " = " << nt.get(v) << ";\n";
 
   os << "  }\n\n";
 
@@ -466,35 +659,19 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
   os << "    // Two-phase update: compute next state for all sequential elements,\n";
   os << "    // then commit together. This avoids ordering artifacts between regs.\n";
   os << "    // Phase 1: compute.\n";
-  for (Operation &op : top) {
-    if (auto r = dyn_cast<pyc::RegOp>(op)) {
-      os << "    " << nt.get(r.getQ()) << "_inst.tick_compute();\n";
-      continue;
-    }
-    if (auto fifo = dyn_cast<pyc::FifoOp>(op)) {
-      os << "    " << nt.get(fifo.getInReady()) << "_inst.tick_compute();\n";
-      continue;
-    }
-    if (auto mem = dyn_cast<pyc::ByteMemOp>(op)) {
-      os << "    " << byteMemInstName.lookup(mem.getOperation()) << ".tick_compute();\n";
-      continue;
-    }
-  }
+  for (auto r : regs)
+    os << "    " << nt.get(r.getQ()) << "_inst.tick_compute();\n";
+  for (auto fifo : fifos)
+    os << "    " << nt.get(fifo.getInReady()) << "_inst.tick_compute();\n";
+  for (auto mem : byteMems)
+    os << "    " << byteMemInstName.lookup(mem.getOperation()) << ".tick_compute();\n";
   os << "    // Phase 2: commit.\n";
-  for (Operation &op : top) {
-    if (auto r = dyn_cast<pyc::RegOp>(op)) {
-      os << "    " << nt.get(r.getQ()) << "_inst.tick_commit();\n";
-      continue;
-    }
-    if (auto fifo = dyn_cast<pyc::FifoOp>(op)) {
-      os << "    " << nt.get(fifo.getInReady()) << "_inst.tick_commit();\n";
-      continue;
-    }
-    if (auto mem = dyn_cast<pyc::ByteMemOp>(op)) {
-      os << "    " << byteMemInstName.lookup(mem.getOperation()) << ".tick_commit();\n";
-      continue;
-    }
-  }
+  for (auto r : regs)
+    os << "    " << nt.get(r.getQ()) << "_inst.tick_commit();\n";
+  for (auto fifo : fifos)
+    os << "    " << nt.get(fifo.getInReady()) << "_inst.tick_commit();\n";
+  for (auto mem : byteMems)
+    os << "    " << byteMemInstName.lookup(mem.getOperation()) << ".tick_commit();\n";
   os << "  }\n";
 
   os << "};\n\n";

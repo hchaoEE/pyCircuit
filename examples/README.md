@@ -15,7 +15,7 @@ PYTHONPATH=../binding/python python3 -m pycircuit.cli emit jit_cache.py -o /tmp/
 Then compile to Verilog:
 
 ```bash
-../build/bin/pyc-compile /tmp/counter.pyc --emit=verilog -o /tmp/counter.sv
+../build/bin/pyc-compile /tmp/counter.pyc --emit=verilog -o /tmp/counter.v
 ```
 
 ## Checked-in generated outputs
@@ -28,7 +28,7 @@ bash examples/update_generated.sh
 
 ## Generated outputs (checked in)
 
-This repo checks in generated `*.sv` and `*.hpp` outputs under `examples/generated/`.
+This repo checks in generated `*.v` and `*.hpp` outputs under `examples/generated/`.
 
 Regenerate (all examples + Linx CPU):
 

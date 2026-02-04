@@ -1,4 +1,4 @@
-`include "../generated/issue_queue_2picker/issue_queue_2picker.sv"
+`include "../generated/issue_queue_2picker/issue_queue_2picker.v"
 
 module tb_issue_queue_2picker;
   logic sys_clk;

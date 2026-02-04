@@ -3,9 +3,12 @@
 Backend “template libraries” used by code generators:
 
 - `include/pyc/cpp/`: cycle-accurate C++ models (header-only, template-heavy)
-- `include/pyc/verilog/`: Verilog/SystemVerilog primitives used by emitted RTL
+- `include/pyc/verilog/`: Verilog primitives used by emitted RTL
 
-Generated code should only need to include/instantiate these templates.
+Generated code instantiates these templates for **stateful** primitives (regs,
+FIFOs, memories). Most **combinational** logic is emitted inline as expressions
+(Verilog operators / C++ `Wire<>` operator overloads) to keep output netlist-like
+and easy to read.
 
 ## Primitive API (prototype)
 
@@ -15,12 +18,12 @@ can stay backend-agnostic.
 
 Examples:
 
-- Verilog: `include/pyc/verilog/pyc_add.sv` defines `module pyc_add #(WIDTH) (a, b, y)`
-- C++: `include/pyc/cpp/pyc_primitives.hpp` defines `template<unsigned Width> struct pyc::cpp::pyc_add { a, b, y; eval(); }`
+- Verilog: `include/pyc/verilog/pyc_reg.v` defines `module pyc_reg #(WIDTH) (...)`
+- C++: `include/pyc/cpp/pyc_primitives.hpp` defines `template<unsigned Width> class pyc::cpp::pyc_reg { ... }`
 
 Current checked-in primitives (prototype):
 
-- Combinational: `pyc_add`, `pyc_mux`, `pyc_and`, `pyc_or`, `pyc_xor`, `pyc_not`
+- Combinational: (usually emitted inline; wrappers exist but are not required)
 - Sequential: `pyc_reg`
 - Ready/valid: `pyc_fifo` (strict handshake, single-clock)
 - Memory: `pyc_byte_mem` (byte-addressed, async read + sync write, prototype)

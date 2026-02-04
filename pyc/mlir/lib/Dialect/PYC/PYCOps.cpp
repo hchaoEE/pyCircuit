@@ -3,12 +3,15 @@
 #include "pyc/Dialect/PYC/PYCDialect.h"
 #include "pyc/Dialect/PYC/PYCTypes.h"
 
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
+
+#include <optional>
 
 using namespace mlir;
 using namespace pyc;
@@ -41,6 +44,220 @@ void ConstantOp::print(OpAsmPrinter &p) {
 }
 
 OpFoldResult ConstantOp::fold(FoldAdaptor) { return getValueAttr(); }
+
+static std::optional<llvm::APInt> asIntAttr(Attribute a) {
+  if (!a)
+    return std::nullopt;
+  if (auto ia = dyn_cast<IntegerAttr>(a))
+    return ia.getValue();
+  return std::nullopt;
+}
+
+static IntegerAttr intAttrFor(Type ty, const llvm::APInt &v) {
+  auto intTy = cast<IntegerType>(ty);
+  llvm::APInt vv = v;
+  if (vv.getBitWidth() != intTy.getWidth())
+    vv = vv.zextOrTrunc(intTy.getWidth());
+  return IntegerAttr::get(intTy, vv);
+}
+
+OpFoldResult AddOp::fold(FoldAdaptor adaptor) {
+  auto outTy = cast<IntegerType>(getResult().getType());
+  auto a = asIntAttr(adaptor.getLhs());
+  auto b = asIntAttr(adaptor.getRhs());
+  if (a && b)
+    return intAttrFor(outTy, (*a + *b).trunc(outTy.getWidth()));
+  if (a && a->isZero())
+    return getRhs();
+  if (b && b->isZero())
+    return getLhs();
+  return {};
+}
+
+OpFoldResult AndOp::fold(FoldAdaptor adaptor) {
+  auto outTy = cast<IntegerType>(getResult().getType());
+  auto a = asIntAttr(adaptor.getLhs());
+  auto b = asIntAttr(adaptor.getRhs());
+  if (a && b)
+    return intAttrFor(outTy, (*a & *b).trunc(outTy.getWidth()));
+  if (a) {
+    if (a->isZero())
+      return intAttrFor(outTy, *a);
+    if (a->isAllOnes())
+      return getRhs();
+  }
+  if (b) {
+    if (b->isZero())
+      return intAttrFor(outTy, *b);
+    if (b->isAllOnes())
+      return getLhs();
+  }
+  return {};
+}
+
+OpFoldResult OrOp::fold(FoldAdaptor adaptor) {
+  auto outTy = cast<IntegerType>(getResult().getType());
+  auto a = asIntAttr(adaptor.getLhs());
+  auto b = asIntAttr(adaptor.getRhs());
+  if (a && b)
+    return intAttrFor(outTy, (*a | *b).trunc(outTy.getWidth()));
+  if (a) {
+    if (a->isZero())
+      return getRhs();
+    if (a->isAllOnes())
+      return intAttrFor(outTy, *a);
+  }
+  if (b) {
+    if (b->isZero())
+      return getLhs();
+    if (b->isAllOnes())
+      return intAttrFor(outTy, *b);
+  }
+  return {};
+}
+
+OpFoldResult XorOp::fold(FoldAdaptor adaptor) {
+  auto outTy = cast<IntegerType>(getResult().getType());
+  auto a = asIntAttr(adaptor.getLhs());
+  auto b = asIntAttr(adaptor.getRhs());
+  if (a && b)
+    return intAttrFor(outTy, (*a ^ *b).trunc(outTy.getWidth()));
+  if (a && a->isZero())
+    return getRhs();
+  if (b && b->isZero())
+    return getLhs();
+  if (getLhs() == getRhs())
+    return intAttrFor(outTy, llvm::APInt(outTy.getWidth(), 0));
+  return {};
+}
+
+OpFoldResult NotOp::fold(FoldAdaptor adaptor) {
+  auto outTy = cast<IntegerType>(getResult().getType());
+  auto a = asIntAttr(adaptor.getIn());
+  if (a)
+    return intAttrFor(outTy, (~(*a)).trunc(outTy.getWidth()));
+  if (auto inner = getIn().getDefiningOp<NotOp>())
+    return inner.getIn();
+  return {};
+}
+
+OpFoldResult MuxOp::fold(FoldAdaptor adaptor) {
+  auto sel = asIntAttr(adaptor.getSel());
+  if (sel) {
+    if (sel->isZero())
+      return getB();
+    return getA();
+  }
+  if (getA() == getB())
+    return getA();
+  return {};
+}
+
+OpFoldResult EqOp::fold(FoldAdaptor adaptor) {
+  if (getLhs() == getRhs())
+    return IntegerAttr::get(IntegerType::get(getContext(), 1), 1);
+  auto a = asIntAttr(adaptor.getLhs());
+  auto b = asIntAttr(adaptor.getRhs());
+  if (a && b) {
+    bool eq = (*a == *b);
+    return IntegerAttr::get(IntegerType::get(getContext(), 1), eq ? 1 : 0);
+  }
+  return {};
+}
+
+OpFoldResult TruncOp::fold(FoldAdaptor adaptor) {
+  if (getIn().getType() == getResult().getType())
+    return getIn();
+  auto a = asIntAttr(adaptor.getIn());
+  if (a)
+    return intAttrFor(getResult().getType(), a->trunc(cast<IntegerType>(getResult().getType()).getWidth()));
+  return {};
+}
+
+OpFoldResult ZextOp::fold(FoldAdaptor adaptor) {
+  if (getIn().getType() == getResult().getType())
+    return getIn();
+  auto a = asIntAttr(adaptor.getIn());
+  if (a) {
+    unsigned ow = cast<IntegerType>(getResult().getType()).getWidth();
+    return intAttrFor(getResult().getType(), a->zext(ow));
+  }
+  return {};
+}
+
+OpFoldResult SextOp::fold(FoldAdaptor adaptor) {
+  if (getIn().getType() == getResult().getType())
+    return getIn();
+  auto a = asIntAttr(adaptor.getIn());
+  if (a) {
+    unsigned ow = cast<IntegerType>(getResult().getType()).getWidth();
+    return intAttrFor(getResult().getType(), a->sext(ow));
+  }
+  return {};
+}
+
+OpFoldResult ExtractOp::fold(FoldAdaptor adaptor) {
+  auto inTy = cast<IntegerType>(getIn().getType());
+  auto outTy = cast<IntegerType>(getResult().getType());
+  std::int64_t lsb = getLsbAttr().getInt();
+  if (lsb == 0 && outTy.getWidth() == inTy.getWidth())
+    return getIn();
+  auto a = asIntAttr(adaptor.getIn());
+  if (a) {
+    llvm::APInt shifted = a->lshr(static_cast<unsigned>(lsb));
+    llvm::APInt sliced = shifted.trunc(outTy.getWidth());
+    return intAttrFor(getResult().getType(), sliced);
+  }
+  return {};
+}
+
+OpFoldResult ShliOp::fold(FoldAdaptor adaptor) {
+  std::int64_t amt = getAmountAttr().getInt();
+  if (amt == 0)
+    return getIn();
+  auto outTy = cast<IntegerType>(getResult().getType());
+  if (static_cast<std::uint64_t>(amt) >= outTy.getWidth())
+    return intAttrFor(getResult().getType(), llvm::APInt(outTy.getWidth(), 0));
+  auto a = asIntAttr(adaptor.getIn());
+  if (a) {
+    llvm::APInt shifted = (*a << static_cast<unsigned>(amt)).trunc(outTy.getWidth());
+    return intAttrFor(getResult().getType(), shifted);
+  }
+  return {};
+}
+
+OpFoldResult ConcatOp::fold(FoldAdaptor adaptor) {
+  if (getInputs().size() == 1)
+    return getInputs().front();
+
+  auto outTy = cast<IntegerType>(getResult().getType());
+  llvm::APInt acc(outTy.getWidth(), 0);
+
+  bool allConst = true;
+  unsigned offset = outTy.getWidth();
+  for (auto [v, a] : llvm::zip(getInputs(), adaptor.getInputs())) {
+    auto inTy = cast<IntegerType>(v.getType());
+    offset -= inTy.getWidth();
+    auto av = asIntAttr(a);
+    if (!av) {
+      allConst = false;
+      break;
+    }
+    llvm::APInt piece = av->zextOrTrunc(inTy.getWidth());
+    acc.insertBits(piece, offset);
+  }
+  if (allConst)
+    return intAttrFor(getResult().getType(), acc);
+
+  return {};
+}
+
+OpFoldResult AliasOp::fold(FoldAdaptor) {
+  // Preserve alias ops that carry a debug name (used for codegen name mangling).
+  if (auto nAttr = (*this)->getAttrOfType<StringAttr>("pyc.name"))
+    return {};
+  return getIn();
+}
 
 LogicalResult MuxOp::verify() {
   auto aTy = getA().getType();

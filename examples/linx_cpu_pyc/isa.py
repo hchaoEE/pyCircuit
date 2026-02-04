@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # NOTE: These op IDs are an internal encoding for the LinxISA bring-up CPU model.
-# Keep them stable across backends/tests (C++ + SystemVerilog).
+# Keep them stable across backends/tests (C++ + Verilog).
 
 OP_INVALID = 0
 OP_C_BSTART_STD = 1

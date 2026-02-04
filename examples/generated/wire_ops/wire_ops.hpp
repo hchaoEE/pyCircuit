@@ -11,25 +11,25 @@ struct WireOps {
   pyc::cpp::Wire<1> sel{};
   pyc::cpp::Wire<8> y{};
 
-  pyc::cpp::Wire<8> pyc_constant_1{};
-  pyc::cpp::Wire<1> pyc_constant_2{};
+  pyc::cpp::Wire<8> COMB__y__wire_ops__L14{};
+  pyc::cpp::Wire<8> COMB__y__wire_ops__L15{};
+  pyc::cpp::Wire<8> COMB__y__wire_ops__L16{};
   pyc::cpp::Wire<8> a__wire_ops__L9{};
   pyc::cpp::Wire<8> b__wire_ops__L10{};
-  pyc::cpp::Wire<1> sel__wire_ops__L11{};
-  pyc::cpp::Wire<8> pyc_xor_3{};
-  pyc::cpp::Wire<8> COMB__y__wire_ops__L14{};
   pyc::cpp::Wire<8> pyc_and_4{};
-  pyc::cpp::Wire<8> COMB__y__wire_ops__L16{};
-  pyc::cpp::Wire<8> pyc_mux_5{};
-  pyc::cpp::Wire<8> COMB__y__wire_ops__L15{};
+  pyc::cpp::Wire<8> pyc_comb_10{};
   pyc::cpp::Wire<8> pyc_comb_6{};
   pyc::cpp::Wire<1> pyc_comb_7{};
   pyc::cpp::Wire<8> pyc_comb_8{};
-  pyc::cpp::Wire<8> y_reg__next{};
+  pyc::cpp::Wire<8> pyc_constant_1{};
+  pyc::cpp::Wire<1> pyc_constant_2{};
+  pyc::cpp::Wire<8> pyc_mux_5{};
   pyc::cpp::Wire<8> pyc_reg_9{};
-  pyc::cpp::Wire<8> y_reg{};
+  pyc::cpp::Wire<8> pyc_xor_3{};
   pyc::cpp::Wire<8> r__wire_ops__L18{};
-  pyc::cpp::Wire<8> pyc_comb_10{};
+  pyc::cpp::Wire<1> sel__wire_ops__L11{};
+  pyc::cpp::Wire<8> y_reg{};
+  pyc::cpp::Wire<8> y_reg__next{};
 
   pyc::cpp::pyc_reg<8> pyc_reg_9_inst;
 
@@ -39,6 +39,12 @@ struct WireOps {
   }
 
   inline void eval_comb_0() {
+    y_reg = pyc_reg_9;
+    r__wire_ops__L18 = y_reg;
+    pyc_comb_10 = r__wire_ops__L18;
+  }
+
+  inline void eval_comb_1() {
     pyc_constant_1 = pyc::cpp::Wire<8>(0ull);
     pyc_constant_2 = pyc::cpp::Wire<1>(1ull);
     a__wire_ops__L9 = a;
@@ -55,12 +61,6 @@ struct WireOps {
     pyc_comb_8 = COMB__y__wire_ops__L15;
   }
 
-  inline void eval_comb_1() {
-    y_reg = pyc_reg_9;
-    r__wire_ops__L18 = y_reg;
-    pyc_comb_10 = r__wire_ops__L18;
-  }
-
   inline void eval_comb_pass() {
     eval_comb_0();
     eval_comb_1();
@@ -68,7 +68,9 @@ struct WireOps {
   }
 
   void eval() {
-    eval_comb_pass();
+    eval_comb_0();
+    eval_comb_1();
+    y_reg__next = pyc_comb_8;
     y = pyc_comb_10;
   }
 

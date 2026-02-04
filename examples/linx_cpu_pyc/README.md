@@ -12,11 +12,11 @@ The design is split across multiple Python files:
 - `examples/linx_cpu_pyc/memory.py`: internal byte-addressed memory instantiation
 
 The CPU includes an internal unified byte-addressed memory (instruction + data)
-implemented via the `pyc.byte_mem` op (C++ + SystemVerilog backends).
+implemented via the `pyc.byte_mem` op (C++ + Verilog backends).
 
 End-to-end flow:
 
-`Python` → `*.pyc` (MLIR) → `pyc-compile` → `SystemVerilog` / `C++`
+`Python` → `*.pyc` (MLIR) → `pyc-compile` → `Verilog` / `C++`
 
 ## C++ self-checking testbench
 

@@ -12,6 +12,19 @@ PYCDialect::PYCDialect(MLIRContext *ctx) : Dialect(getDialectNamespace(), ctx, T
   initialize();
 }
 
+Operation *PYCDialect::materializeConstant(OpBuilder &builder, Attribute value, Type type, Location loc) {
+  auto intTy = dyn_cast<IntegerType>(type);
+  auto intAttr = dyn_cast<IntegerAttr>(value);
+  if (!intTy || !intAttr)
+    return nullptr;
+
+  llvm::APInt v = intAttr.getValue();
+  if (v.getBitWidth() != intTy.getWidth())
+    v = v.zextOrTrunc(intTy.getWidth());
+
+  return builder.create<pyc::ConstantOp>(loc, intTy, IntegerAttr::get(intTy, v));
+}
+
 Type PYCDialect::parseType(DialectAsmParser &parser) const {
   StringRef mnemonic;
   if (failed(parser.parseKeyword(&mnemonic)))

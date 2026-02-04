@@ -16,145 +16,72 @@ struct issue_queue_2picker {
   pyc::cpp::Wire<1> out1_valid{};
   pyc::cpp::Wire<8> out1_data{};
 
-  pyc::cpp::Wire<8> pyc_constant_1{};
-  pyc::cpp::Wire<1> pyc_constant_2{};
-  pyc::cpp::Wire<1> pyc_constant_3{};
-  pyc::cpp::Wire<1> in_valid__issue_queue_2picker__L9{};
+  pyc::cpp::Wire<8> a1_d0__issue_queue_2picker__L55{};
+  pyc::cpp::Wire<8> a1_d1__issue_queue_2picker__L56{};
+  pyc::cpp::Wire<8> a1_d2__issue_queue_2picker__L57{};
+  pyc::cpp::Wire<8> a1_d3__issue_queue_2picker__L58{};
+  pyc::cpp::Wire<1> a1_v0__issue_queue_2picker__L51{};
+  pyc::cpp::Wire<1> a1_v1__issue_queue_2picker__L52{};
+  pyc::cpp::Wire<1> a1_v2__issue_queue_2picker__L53{};
+  pyc::cpp::Wire<1> a1_v3__issue_queue_2picker__L54{};
+  pyc::cpp::Wire<8> a2_d0__issue_queue_2picker__L73{};
+  pyc::cpp::Wire<8> a2_d1__issue_queue_2picker__L74{};
+  pyc::cpp::Wire<8> a2_d2__issue_queue_2picker__L75{};
+  pyc::cpp::Wire<8> a2_d3__issue_queue_2picker__L76{};
+  pyc::cpp::Wire<1> a2_v0__issue_queue_2picker__L69{};
+  pyc::cpp::Wire<1> a2_v1__issue_queue_2picker__L70{};
+  pyc::cpp::Wire<1> a2_v2__issue_queue_2picker__L71{};
+  pyc::cpp::Wire<1> a2_v3__issue_queue_2picker__L72{};
+  pyc::cpp::Wire<8> data0{};
+  pyc::cpp::Wire<8> data0__issue_queue_2picker__L18{};
+  pyc::cpp::Wire<8> data0__next{};
+  pyc::cpp::Wire<8> data1{};
+  pyc::cpp::Wire<8> data1__issue_queue_2picker__L19{};
+  pyc::cpp::Wire<8> data1__next{};
+  pyc::cpp::Wire<8> data2{};
+  pyc::cpp::Wire<8> data2__issue_queue_2picker__L20{};
+  pyc::cpp::Wire<8> data2__next{};
+  pyc::cpp::Wire<8> data3{};
+  pyc::cpp::Wire<8> data3__issue_queue_2picker__L21{};
+  pyc::cpp::Wire<8> data3__next{};
+  pyc::cpp::Wire<1> en0__issue_queue_2picker__L78{};
+  pyc::cpp::Wire<1> en1__issue_queue_2picker__L79{};
+  pyc::cpp::Wire<1> en2__issue_queue_2picker__L80{};
+  pyc::cpp::Wire<1> en3__issue_queue_2picker__L81{};
   pyc::cpp::Wire<8> in_data__issue_queue_2picker__L10{};
+  pyc::cpp::Wire<1> in_ready__issue_queue_2picker__L30{};
+  pyc::cpp::Wire<1> in_valid__issue_queue_2picker__L9{};
+  pyc::cpp::Wire<8> out0_data__issue_queue_2picker__L24{};
   pyc::cpp::Wire<1> out0_ready__issue_queue_2picker__L11{};
+  pyc::cpp::Wire<1> out0_valid__issue_queue_2picker__L23{};
+  pyc::cpp::Wire<8> out1_data__issue_queue_2picker__L26{};
   pyc::cpp::Wire<1> out1_ready__issue_queue_2picker__L12{};
+  pyc::cpp::Wire<1> out1_valid__issue_queue_2picker__L25{};
+  pyc::cpp::Wire<1> pop0__issue_queue_2picker__L28{};
+  pyc::cpp::Wire<1> pop1__issue_queue_2picker__L29{};
+  pyc::cpp::Wire<1> push__issue_queue_2picker__L31{};
+  pyc::cpp::Wire<1> pyc_and_26{};
+  pyc::cpp::Wire<1> pyc_and_27{};
+  pyc::cpp::Wire<1> pyc_and_28{};
+  pyc::cpp::Wire<1> pyc_and_31{};
+  pyc::cpp::Wire<1> pyc_and_49{};
+  pyc::cpp::Wire<1> pyc_and_50{};
+  pyc::cpp::Wire<1> pyc_and_52{};
+  pyc::cpp::Wire<1> pyc_and_53{};
+  pyc::cpp::Wire<1> pyc_and_55{};
+  pyc::cpp::Wire<1> pyc_and_56{};
+  pyc::cpp::Wire<1> pyc_and_58{};
+  pyc::cpp::Wire<1> pyc_comb_10{};
+  pyc::cpp::Wire<1> pyc_comb_12{};
+  pyc::cpp::Wire<1> pyc_comb_14{};
+  pyc::cpp::Wire<1> pyc_comb_16{};
+  pyc::cpp::Wire<1> pyc_comb_18{};
+  pyc::cpp::Wire<8> pyc_comb_20{};
+  pyc::cpp::Wire<8> pyc_comb_22{};
+  pyc::cpp::Wire<8> pyc_comb_24{};
   pyc::cpp::Wire<8> pyc_comb_4{};
   pyc::cpp::Wire<1> pyc_comb_5{};
   pyc::cpp::Wire<1> pyc_comb_6{};
-  pyc::cpp::Wire<1> pyc_comb_7{};
-  pyc::cpp::Wire<8> pyc_comb_8{};
-  pyc::cpp::Wire<1> pyc_comb_9{};
-  pyc::cpp::Wire<1> pyc_comb_10{};
-  pyc::cpp::Wire<1> val0__next{};
-  pyc::cpp::Wire<1> pyc_reg_11{};
-  pyc::cpp::Wire<1> val0{};
-  pyc::cpp::Wire<1> val0__issue_queue_2picker__L14{};
-  pyc::cpp::Wire<1> pyc_comb_12{};
-  pyc::cpp::Wire<1> val1__next{};
-  pyc::cpp::Wire<1> pyc_reg_13{};
-  pyc::cpp::Wire<1> val1{};
-  pyc::cpp::Wire<1> val1__issue_queue_2picker__L15{};
-  pyc::cpp::Wire<1> pyc_comb_14{};
-  pyc::cpp::Wire<1> val2__next{};
-  pyc::cpp::Wire<1> pyc_reg_15{};
-  pyc::cpp::Wire<1> val2{};
-  pyc::cpp::Wire<1> val2__issue_queue_2picker__L16{};
-  pyc::cpp::Wire<1> pyc_comb_16{};
-  pyc::cpp::Wire<1> val3__next{};
-  pyc::cpp::Wire<1> pyc_reg_17{};
-  pyc::cpp::Wire<1> val3{};
-  pyc::cpp::Wire<1> val3__issue_queue_2picker__L17{};
-  pyc::cpp::Wire<1> pyc_comb_18{};
-  pyc::cpp::Wire<8> data0__next{};
-  pyc::cpp::Wire<8> pyc_reg_19{};
-  pyc::cpp::Wire<8> data0{};
-  pyc::cpp::Wire<8> data0__issue_queue_2picker__L18{};
-  pyc::cpp::Wire<8> pyc_comb_20{};
-  pyc::cpp::Wire<8> data1__next{};
-  pyc::cpp::Wire<8> pyc_reg_21{};
-  pyc::cpp::Wire<8> data1{};
-  pyc::cpp::Wire<8> data1__issue_queue_2picker__L19{};
-  pyc::cpp::Wire<8> pyc_comb_22{};
-  pyc::cpp::Wire<8> data2__next{};
-  pyc::cpp::Wire<8> pyc_reg_23{};
-  pyc::cpp::Wire<8> data2{};
-  pyc::cpp::Wire<8> data2__issue_queue_2picker__L20{};
-  pyc::cpp::Wire<8> pyc_comb_24{};
-  pyc::cpp::Wire<8> data3__next{};
-  pyc::cpp::Wire<8> pyc_reg_25{};
-  pyc::cpp::Wire<8> data3{};
-  pyc::cpp::Wire<8> data3__issue_queue_2picker__L21{};
-  pyc::cpp::Wire<1> out0_valid__issue_queue_2picker__L23{};
-  pyc::cpp::Wire<8> out0_data__issue_queue_2picker__L24{};
-  pyc::cpp::Wire<1> out1_valid__issue_queue_2picker__L25{};
-  pyc::cpp::Wire<8> out1_data__issue_queue_2picker__L26{};
-  pyc::cpp::Wire<1> pyc_and_26{};
-  pyc::cpp::Wire<1> pop0__issue_queue_2picker__L28{};
-  pyc::cpp::Wire<1> pyc_and_27{};
-  pyc::cpp::Wire<1> pyc_and_28{};
-  pyc::cpp::Wire<1> pop1__issue_queue_2picker__L29{};
-  pyc::cpp::Wire<1> pyc_not_29{};
-  pyc::cpp::Wire<1> pyc_or_30{};
-  pyc::cpp::Wire<1> in_ready__issue_queue_2picker__L30{};
-  pyc::cpp::Wire<1> pyc_and_31{};
-  pyc::cpp::Wire<1> push__issue_queue_2picker__L31{};
-  pyc::cpp::Wire<1> s0_v0__issue_queue_2picker__L33{};
-  pyc::cpp::Wire<1> s0_v1__issue_queue_2picker__L34{};
-  pyc::cpp::Wire<1> s0_v2__issue_queue_2picker__L35{};
-  pyc::cpp::Wire<1> s0_v3__issue_queue_2picker__L36{};
-  pyc::cpp::Wire<8> s0_d0__issue_queue_2picker__L37{};
-  pyc::cpp::Wire<8> s0_d1__issue_queue_2picker__L38{};
-  pyc::cpp::Wire<8> s0_d2__issue_queue_2picker__L39{};
-  pyc::cpp::Wire<8> s0_d3__issue_queue_2picker__L40{};
-  pyc::cpp::Wire<1> s1_v0__issue_queue_2picker__L42{};
-  pyc::cpp::Wire<1> s1_v1__issue_queue_2picker__L43{};
-  pyc::cpp::Wire<1> s1_v2__issue_queue_2picker__L44{};
-  pyc::cpp::Wire<1> s1_v3__issue_queue_2picker__L45{};
-  pyc::cpp::Wire<8> s1_d0__issue_queue_2picker__L46{};
-  pyc::cpp::Wire<8> s1_d1__issue_queue_2picker__L47{};
-  pyc::cpp::Wire<8> s1_d2__issue_queue_2picker__L48{};
-  pyc::cpp::Wire<8> s1_d3__issue_queue_2picker__L49{};
-  pyc::cpp::Wire<1> pyc_mux_32{};
-  pyc::cpp::Wire<1> a1_v0__issue_queue_2picker__L51{};
-  pyc::cpp::Wire<1> pyc_mux_33{};
-  pyc::cpp::Wire<1> a1_v1__issue_queue_2picker__L52{};
-  pyc::cpp::Wire<1> pyc_mux_34{};
-  pyc::cpp::Wire<1> a1_v2__issue_queue_2picker__L53{};
-  pyc::cpp::Wire<1> pyc_mux_35{};
-  pyc::cpp::Wire<1> a1_v3__issue_queue_2picker__L54{};
-  pyc::cpp::Wire<8> pyc_mux_36{};
-  pyc::cpp::Wire<8> a1_d0__issue_queue_2picker__L55{};
-  pyc::cpp::Wire<8> pyc_mux_37{};
-  pyc::cpp::Wire<8> a1_d1__issue_queue_2picker__L56{};
-  pyc::cpp::Wire<8> pyc_mux_38{};
-  pyc::cpp::Wire<8> a1_d2__issue_queue_2picker__L57{};
-  pyc::cpp::Wire<8> pyc_mux_39{};
-  pyc::cpp::Wire<8> a1_d3__issue_queue_2picker__L58{};
-  pyc::cpp::Wire<1> s2_v0__issue_queue_2picker__L60{};
-  pyc::cpp::Wire<1> s2_v1__issue_queue_2picker__L61{};
-  pyc::cpp::Wire<1> s2_v2__issue_queue_2picker__L62{};
-  pyc::cpp::Wire<1> s2_v3__issue_queue_2picker__L63{};
-  pyc::cpp::Wire<8> s2_d0__issue_queue_2picker__L64{};
-  pyc::cpp::Wire<8> s2_d1__issue_queue_2picker__L65{};
-  pyc::cpp::Wire<8> s2_d2__issue_queue_2picker__L66{};
-  pyc::cpp::Wire<8> s2_d3__issue_queue_2picker__L67{};
-  pyc::cpp::Wire<1> pyc_mux_40{};
-  pyc::cpp::Wire<1> a2_v0__issue_queue_2picker__L69{};
-  pyc::cpp::Wire<1> pyc_mux_41{};
-  pyc::cpp::Wire<1> a2_v1__issue_queue_2picker__L70{};
-  pyc::cpp::Wire<1> pyc_mux_42{};
-  pyc::cpp::Wire<1> a2_v2__issue_queue_2picker__L71{};
-  pyc::cpp::Wire<1> pyc_mux_43{};
-  pyc::cpp::Wire<1> a2_v3__issue_queue_2picker__L72{};
-  pyc::cpp::Wire<8> pyc_mux_44{};
-  pyc::cpp::Wire<8> a2_d0__issue_queue_2picker__L73{};
-  pyc::cpp::Wire<8> pyc_mux_45{};
-  pyc::cpp::Wire<8> a2_d1__issue_queue_2picker__L74{};
-  pyc::cpp::Wire<8> pyc_mux_46{};
-  pyc::cpp::Wire<8> a2_d2__issue_queue_2picker__L75{};
-  pyc::cpp::Wire<8> pyc_mux_47{};
-  pyc::cpp::Wire<8> a2_d3__issue_queue_2picker__L76{};
-  pyc::cpp::Wire<1> pyc_not_48{};
-  pyc::cpp::Wire<1> pyc_and_49{};
-  pyc::cpp::Wire<1> en0__issue_queue_2picker__L78{};
-  pyc::cpp::Wire<1> pyc_and_50{};
-  pyc::cpp::Wire<1> pyc_not_51{};
-  pyc::cpp::Wire<1> pyc_and_52{};
-  pyc::cpp::Wire<1> en1__issue_queue_2picker__L79{};
-  pyc::cpp::Wire<1> pyc_and_53{};
-  pyc::cpp::Wire<1> pyc_not_54{};
-  pyc::cpp::Wire<1> pyc_and_55{};
-  pyc::cpp::Wire<1> en2__issue_queue_2picker__L80{};
-  pyc::cpp::Wire<1> pyc_and_56{};
-  pyc::cpp::Wire<1> pyc_not_57{};
-  pyc::cpp::Wire<1> pyc_and_58{};
-  pyc::cpp::Wire<1> en3__issue_queue_2picker__L81{};
-  pyc::cpp::Wire<1> pyc_or_59{};
   pyc::cpp::Wire<1> pyc_comb_60{};
   pyc::cpp::Wire<8> pyc_comb_61{};
   pyc::cpp::Wire<1> pyc_comb_62{};
@@ -165,6 +92,7 @@ struct issue_queue_2picker {
   pyc::cpp::Wire<1> pyc_comb_67{};
   pyc::cpp::Wire<8> pyc_comb_68{};
   pyc::cpp::Wire<8> pyc_comb_69{};
+  pyc::cpp::Wire<1> pyc_comb_7{};
   pyc::cpp::Wire<8> pyc_comb_70{};
   pyc::cpp::Wire<8> pyc_comb_71{};
   pyc::cpp::Wire<1> pyc_comb_72{};
@@ -172,13 +100,85 @@ struct issue_queue_2picker {
   pyc::cpp::Wire<1> pyc_comb_74{};
   pyc::cpp::Wire<1> pyc_comb_75{};
   pyc::cpp::Wire<1> pyc_comb_76{};
-  pyc::cpp::Wire<1> pyc_or_77{};
-  pyc::cpp::Wire<1> pyc_or_78{};
-  pyc::cpp::Wire<1> pyc_or_79{};
+  pyc::cpp::Wire<8> pyc_comb_8{};
+  pyc::cpp::Wire<1> pyc_comb_9{};
+  pyc::cpp::Wire<8> pyc_constant_1{};
+  pyc::cpp::Wire<1> pyc_constant_2{};
+  pyc::cpp::Wire<1> pyc_constant_3{};
+  pyc::cpp::Wire<1> pyc_mux_32{};
+  pyc::cpp::Wire<1> pyc_mux_33{};
+  pyc::cpp::Wire<1> pyc_mux_34{};
+  pyc::cpp::Wire<1> pyc_mux_35{};
+  pyc::cpp::Wire<8> pyc_mux_36{};
+  pyc::cpp::Wire<8> pyc_mux_37{};
+  pyc::cpp::Wire<8> pyc_mux_38{};
+  pyc::cpp::Wire<8> pyc_mux_39{};
+  pyc::cpp::Wire<1> pyc_mux_40{};
+  pyc::cpp::Wire<1> pyc_mux_41{};
+  pyc::cpp::Wire<1> pyc_mux_42{};
+  pyc::cpp::Wire<1> pyc_mux_43{};
+  pyc::cpp::Wire<8> pyc_mux_44{};
+  pyc::cpp::Wire<8> pyc_mux_45{};
+  pyc::cpp::Wire<8> pyc_mux_46{};
+  pyc::cpp::Wire<8> pyc_mux_47{};
   pyc::cpp::Wire<8> pyc_mux_80{};
   pyc::cpp::Wire<8> pyc_mux_81{};
   pyc::cpp::Wire<8> pyc_mux_82{};
   pyc::cpp::Wire<8> pyc_mux_83{};
+  pyc::cpp::Wire<1> pyc_not_29{};
+  pyc::cpp::Wire<1> pyc_not_48{};
+  pyc::cpp::Wire<1> pyc_not_51{};
+  pyc::cpp::Wire<1> pyc_not_54{};
+  pyc::cpp::Wire<1> pyc_not_57{};
+  pyc::cpp::Wire<1> pyc_or_30{};
+  pyc::cpp::Wire<1> pyc_or_59{};
+  pyc::cpp::Wire<1> pyc_or_77{};
+  pyc::cpp::Wire<1> pyc_or_78{};
+  pyc::cpp::Wire<1> pyc_or_79{};
+  pyc::cpp::Wire<1> pyc_reg_11{};
+  pyc::cpp::Wire<1> pyc_reg_13{};
+  pyc::cpp::Wire<1> pyc_reg_15{};
+  pyc::cpp::Wire<1> pyc_reg_17{};
+  pyc::cpp::Wire<8> pyc_reg_19{};
+  pyc::cpp::Wire<8> pyc_reg_21{};
+  pyc::cpp::Wire<8> pyc_reg_23{};
+  pyc::cpp::Wire<8> pyc_reg_25{};
+  pyc::cpp::Wire<8> s0_d0__issue_queue_2picker__L37{};
+  pyc::cpp::Wire<8> s0_d1__issue_queue_2picker__L38{};
+  pyc::cpp::Wire<8> s0_d2__issue_queue_2picker__L39{};
+  pyc::cpp::Wire<8> s0_d3__issue_queue_2picker__L40{};
+  pyc::cpp::Wire<1> s0_v0__issue_queue_2picker__L33{};
+  pyc::cpp::Wire<1> s0_v1__issue_queue_2picker__L34{};
+  pyc::cpp::Wire<1> s0_v2__issue_queue_2picker__L35{};
+  pyc::cpp::Wire<1> s0_v3__issue_queue_2picker__L36{};
+  pyc::cpp::Wire<8> s1_d0__issue_queue_2picker__L46{};
+  pyc::cpp::Wire<8> s1_d1__issue_queue_2picker__L47{};
+  pyc::cpp::Wire<8> s1_d2__issue_queue_2picker__L48{};
+  pyc::cpp::Wire<8> s1_d3__issue_queue_2picker__L49{};
+  pyc::cpp::Wire<1> s1_v0__issue_queue_2picker__L42{};
+  pyc::cpp::Wire<1> s1_v1__issue_queue_2picker__L43{};
+  pyc::cpp::Wire<1> s1_v2__issue_queue_2picker__L44{};
+  pyc::cpp::Wire<1> s1_v3__issue_queue_2picker__L45{};
+  pyc::cpp::Wire<8> s2_d0__issue_queue_2picker__L64{};
+  pyc::cpp::Wire<8> s2_d1__issue_queue_2picker__L65{};
+  pyc::cpp::Wire<8> s2_d2__issue_queue_2picker__L66{};
+  pyc::cpp::Wire<8> s2_d3__issue_queue_2picker__L67{};
+  pyc::cpp::Wire<1> s2_v0__issue_queue_2picker__L60{};
+  pyc::cpp::Wire<1> s2_v1__issue_queue_2picker__L61{};
+  pyc::cpp::Wire<1> s2_v2__issue_queue_2picker__L62{};
+  pyc::cpp::Wire<1> s2_v3__issue_queue_2picker__L63{};
+  pyc::cpp::Wire<1> val0{};
+  pyc::cpp::Wire<1> val0__issue_queue_2picker__L14{};
+  pyc::cpp::Wire<1> val0__next{};
+  pyc::cpp::Wire<1> val1{};
+  pyc::cpp::Wire<1> val1__issue_queue_2picker__L15{};
+  pyc::cpp::Wire<1> val1__next{};
+  pyc::cpp::Wire<1> val2{};
+  pyc::cpp::Wire<1> val2__issue_queue_2picker__L16{};
+  pyc::cpp::Wire<1> val2__next{};
+  pyc::cpp::Wire<1> val3{};
+  pyc::cpp::Wire<1> val3__issue_queue_2picker__L17{};
+  pyc::cpp::Wire<1> val3__next{};
 
   pyc::cpp::pyc_reg<1> pyc_reg_11_inst;
   pyc::cpp::pyc_reg<1> pyc_reg_13_inst;
@@ -202,6 +202,48 @@ struct issue_queue_2picker {
   }
 
   inline void eval_comb_0() {
+    val0 = pyc_reg_11;
+    val0__issue_queue_2picker__L14 = val0;
+    pyc_comb_12 = val0__issue_queue_2picker__L14;
+  }
+
+  inline void eval_comb_1() {
+    val1 = pyc_reg_13;
+    val1__issue_queue_2picker__L15 = val1;
+    pyc_comb_14 = val1__issue_queue_2picker__L15;
+  }
+
+  inline void eval_comb_2() {
+    val2 = pyc_reg_15;
+    val2__issue_queue_2picker__L16 = val2;
+    pyc_comb_16 = val2__issue_queue_2picker__L16;
+  }
+
+  inline void eval_comb_3() {
+    val3 = pyc_reg_17;
+    val3__issue_queue_2picker__L17 = val3;
+    pyc_comb_18 = val3__issue_queue_2picker__L17;
+  }
+
+  inline void eval_comb_4() {
+    data0 = pyc_reg_19;
+    data0__issue_queue_2picker__L18 = data0;
+    pyc_comb_20 = data0__issue_queue_2picker__L18;
+  }
+
+  inline void eval_comb_5() {
+    data1 = pyc_reg_21;
+    data1__issue_queue_2picker__L19 = data1;
+    pyc_comb_22 = data1__issue_queue_2picker__L19;
+  }
+
+  inline void eval_comb_6() {
+    data2 = pyc_reg_23;
+    data2__issue_queue_2picker__L20 = data2;
+    pyc_comb_24 = data2__issue_queue_2picker__L20;
+  }
+
+  inline void eval_comb_7() {
     pyc_constant_1 = pyc::cpp::Wire<8>(0ull);
     pyc_constant_2 = pyc::cpp::Wire<1>(0ull);
     pyc_constant_3 = pyc::cpp::Wire<1>(1ull);
@@ -216,48 +258,6 @@ struct issue_queue_2picker {
     pyc_comb_8 = in_data__issue_queue_2picker__L10;
     pyc_comb_9 = out0_ready__issue_queue_2picker__L11;
     pyc_comb_10 = out1_ready__issue_queue_2picker__L12;
-  }
-
-  inline void eval_comb_1() {
-    val0 = pyc_reg_11;
-    val0__issue_queue_2picker__L14 = val0;
-    pyc_comb_12 = val0__issue_queue_2picker__L14;
-  }
-
-  inline void eval_comb_2() {
-    val1 = pyc_reg_13;
-    val1__issue_queue_2picker__L15 = val1;
-    pyc_comb_14 = val1__issue_queue_2picker__L15;
-  }
-
-  inline void eval_comb_3() {
-    val2 = pyc_reg_15;
-    val2__issue_queue_2picker__L16 = val2;
-    pyc_comb_16 = val2__issue_queue_2picker__L16;
-  }
-
-  inline void eval_comb_4() {
-    val3 = pyc_reg_17;
-    val3__issue_queue_2picker__L17 = val3;
-    pyc_comb_18 = val3__issue_queue_2picker__L17;
-  }
-
-  inline void eval_comb_5() {
-    data0 = pyc_reg_19;
-    data0__issue_queue_2picker__L18 = data0;
-    pyc_comb_20 = data0__issue_queue_2picker__L18;
-  }
-
-  inline void eval_comb_6() {
-    data1 = pyc_reg_21;
-    data1__issue_queue_2picker__L19 = data1;
-    pyc_comb_22 = data1__issue_queue_2picker__L19;
-  }
-
-  inline void eval_comb_7() {
-    data2 = pyc_reg_23;
-    data2__issue_queue_2picker__L20 = data2;
-    pyc_comb_24 = data2__issue_queue_2picker__L20;
   }
 
   inline void eval_comb_8() {
@@ -378,13 +378,6 @@ struct issue_queue_2picker {
     eval_comb_6();
     eval_comb_7();
     eval_comb_8();
-    val0__next = pyc_comb_76;
-    pyc_or_77 = (pyc_comb_65 | pyc_comb_73);
-    val1__next = pyc_or_77;
-    pyc_or_78 = (pyc_comb_66 | pyc_comb_74);
-    val2__next = pyc_or_78;
-    pyc_or_79 = (pyc_comb_67 | pyc_comb_75);
-    val3__next = pyc_or_79;
     pyc_mux_80 = (pyc_comb_72.toBool() ? pyc_comb_8 : pyc_comb_68);
     data0__next = pyc_mux_80;
     pyc_mux_81 = (pyc_comb_73.toBool() ? pyc_comb_8 : pyc_comb_69);
@@ -393,10 +386,40 @@ struct issue_queue_2picker {
     data2__next = pyc_mux_82;
     pyc_mux_83 = (pyc_comb_75.toBool() ? pyc_comb_8 : pyc_comb_71);
     data3__next = pyc_mux_83;
+    pyc_or_77 = (pyc_comb_65 | pyc_comb_73);
+    pyc_or_78 = (pyc_comb_66 | pyc_comb_74);
+    pyc_or_79 = (pyc_comb_67 | pyc_comb_75);
+    val0__next = pyc_comb_76;
+    val1__next = pyc_or_77;
+    val2__next = pyc_or_78;
+    val3__next = pyc_or_79;
   }
 
   void eval() {
-    eval_comb_pass();
+    eval_comb_0();
+    eval_comb_1();
+    eval_comb_2();
+    eval_comb_3();
+    eval_comb_4();
+    eval_comb_5();
+    eval_comb_6();
+    eval_comb_7();
+    eval_comb_8();
+    pyc_mux_80 = (pyc_comb_72.toBool() ? pyc_comb_8 : pyc_comb_68);
+    data0__next = pyc_mux_80;
+    pyc_mux_81 = (pyc_comb_73.toBool() ? pyc_comb_8 : pyc_comb_69);
+    data1__next = pyc_mux_81;
+    pyc_mux_82 = (pyc_comb_74.toBool() ? pyc_comb_8 : pyc_comb_70);
+    data2__next = pyc_mux_82;
+    pyc_mux_83 = (pyc_comb_75.toBool() ? pyc_comb_8 : pyc_comb_71);
+    data3__next = pyc_mux_83;
+    pyc_or_77 = (pyc_comb_65 | pyc_comb_73);
+    pyc_or_78 = (pyc_comb_66 | pyc_comb_74);
+    pyc_or_79 = (pyc_comb_67 | pyc_comb_75);
+    val0__next = pyc_comb_76;
+    val1__next = pyc_or_77;
+    val2__next = pyc_or_78;
+    val3__next = pyc_or_79;
     in_ready = pyc_comb_64;
     out0_valid = pyc_comb_60;
     out0_data = pyc_comb_61;

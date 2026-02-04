@@ -118,14 +118,14 @@ into a single region:
 
 ## 3) Verilog backend (prototype)
 
-`pyc-compile --emit=verilog` emits SystemVerilog:
+`pyc-compile --emit=verilog` emits Verilog:
 
 - Combinational ops become instances of primitives in `include/pyc/verilog/` (e.g. `pyc_add`, `pyc_mux`, `pyc_and`)
-- `pyc.reg` becomes an instance of `include/pyc/verilog/pyc_reg.sv`
-- `pyc.fifo` becomes an instance of `include/pyc/verilog/pyc_fifo.sv`
+- `pyc.reg` becomes an instance of `include/pyc/verilog/pyc_reg.v`
+- `pyc.fifo` becomes an instance of `include/pyc/verilog/pyc_fifo.v`
 
-`pyc-compile` also runs `pyc-fuse-comb`, which enables emission of flattened SV
-`assign` statements for large purely-combinational regions.
+`pyc-compile` also runs `pyc-fuse-comb`, which enables emission of flattened
+Verilog `assign` statements for large purely-combinational regions.
 
 ## 4) Structured control flow (frontend temporary IR)
 

@@ -4,7 +4,7 @@
 You write *sequential-looking* Python; the frontend emits `.pyc` (MLIR), MLIR passes canonicalize + fuse, and `pyc-compile`
 emits either:
 
-- **SystemVerilog** (static RTL; strict ready/valid streaming)
+- **Verilog** (static RTL; strict ready/valid streaming)
 - **Header-only C++** (cycle/tick model; convenient for bring-up + debug)
 
 Everything between Python and codegen stays **MLIR-only**.
@@ -12,13 +12,13 @@ Everything between Python and codegen stays **MLIR-only**.
 Docs:
 - `docs/USAGE.md` (how to write designs; JIT rules; debug/tracing)
 - `docs/IR_SPEC.md` (PYC dialect contract)
-- `docs/PRIMITIVES.md` (backend template “ABI”: matching C++/SV primitives)
+- `docs/PRIMITIVES.md` (backend template “ABI”: matching C++/Verilog primitives)
 
 ## Design goals (why this repo exists)
 
 - **Readable Python**: build pipelines/modules with `with m.scope("STAGE"):` + normal Python operators.
 - **Static hardware only**: Python control flow lowers to MLIR `scf.*`, then into *static* mux/unrolled logic.
-- **Traceability**: stable name mangling (`scope + file:line`) so generated SV/C++ stays debuggable.
+- **Traceability**: stable name mangling (`scope + file:line`) so generated Verilog/C++ stays debuggable.
 - **Multi-clock from day 1**: explicit `!pyc.clock` / `!pyc.reset`.
 - **Strict ready/valid**: streaming primitives use a single interpretation everywhere.
 
@@ -104,10 +104,10 @@ If installed via `pip`, you can also run:
 pycircuit emit examples/jit_pipeline_vec.py -o /tmp/jit_pipeline_vec.pyc
 ```
 
-Compile MLIR to SystemVerilog:
+Compile MLIR to Verilog:
 
 ```bash
-./build/bin/pyc-compile /tmp/jit_pipeline_vec.pyc --emit=verilog -o /tmp/jit_pipeline_vec.sv
+./build/bin/pyc-compile /tmp/jit_pipeline_vec.pyc --emit=verilog -o /tmp/jit_pipeline_vec.v
 ```
 
 Regenerate the checked-in golden outputs under `examples/generated/`:
@@ -144,12 +144,12 @@ cmake --install build --prefix dist/pycircuit
 
 The tarball includes:
 - `bin/pyc-compile`, `bin/pyc-opt`
-- `include/pyc/*` (C++ + SV template libraries)
+- `include/pyc/*` (C++ + Verilog template libraries)
 - `share/pycircuit/python/pycircuit` (Python frontend sources; usable via `PYTHONPATH=...`)
 
 ## Repo layout
 
 - `binding/python/pycircuit/`: Python DSL + AST/JIT frontend + CLI
 - `pyc/mlir/`: MLIR dialect, passes, tools (`pyc-opt`, `pyc-compile`)
-- `include/pyc/`: backend template libraries (C++ + SystemVerilog primitives)
+- `include/pyc/`: backend template libraries (C++ + Verilog primitives)
 - `examples/`: example designs, testbenches, and checked-in generated outputs

@@ -32,12 +32,12 @@ emit_one() {
   mkdir -p "${outdir}"
   echo "[emit] ${name}: ${src}"
 
-  # Emit MLIR to a temp file (keep repo-clean: only check in .sv/.hpp outputs).
+  # Emit MLIR to a temp file (keep repo-clean: only check in .v/.hpp outputs).
   local tmp_pyc
   tmp_pyc="$(mktemp -t "pycircuit.${name}.pyc")"
 
   PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="${ROOT_DIR}/binding/python" python3 -m pycircuit.cli emit "${src}" -o "${tmp_pyc}"
-  "${PYC_COMPILE}" "${tmp_pyc}" --emit=verilog -o "${outdir}/${name}.sv"
+  "${PYC_COMPILE}" "${tmp_pyc}" --emit=verilog -o "${outdir}/${name}.v"
   "${PYC_COMPILE}" "${tmp_pyc}" --emit=cpp -o "${outdir}/${name}.hpp"
 }
 

@@ -8,38 +8,38 @@ struct JitControlFlow {
   pyc::cpp::Wire<8> b{};
   pyc::cpp::Wire<8> out{};
 
+  pyc::cpp::Wire<8> a__jit_control_flow__L7{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L16{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L17{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L18{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L18_2{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L18_3{};
+  pyc::cpp::Wire<8> acc__jit_control_flow__L18_4{};
+  pyc::cpp::Wire<8> b__jit_control_flow__L8{};
+  pyc::cpp::Wire<9> pyc_add_10{};
+  pyc::cpp::Wire<9> pyc_add_11{};
+  pyc::cpp::Wire<8> pyc_add_13{};
+  pyc::cpp::Wire<8> pyc_add_14{};
+  pyc::cpp::Wire<8> pyc_add_16{};
+  pyc::cpp::Wire<8> pyc_add_17{};
+  pyc::cpp::Wire<8> pyc_add_18{};
+  pyc::cpp::Wire<8> pyc_add_19{};
+  pyc::cpp::Wire<8> pyc_add_4{};
+  pyc::cpp::Wire<8> pyc_comb_20{};
   pyc::cpp::Wire<8> pyc_constant_1{};
   pyc::cpp::Wire<8> pyc_constant_2{};
   pyc::cpp::Wire<9> pyc_constant_3{};
-  pyc::cpp::Wire<8> a__jit_control_flow__L7{};
-  pyc::cpp::Wire<8> b__jit_control_flow__L8{};
-  pyc::cpp::Wire<8> pyc_add_4{};
+  pyc::cpp::Wire<1> pyc_extract_12{};
   pyc::cpp::Wire<7> pyc_extract_5{};
+  pyc::cpp::Wire<8> pyc_mux_15{};
+  pyc::cpp::Wire<9> pyc_not_9{};
   pyc::cpp::Wire<8> pyc_zext_6{};
-  pyc::cpp::Wire<8> x__jit_control_flow__L10{};
   pyc::cpp::Wire<9> pyc_zext_7{};
   pyc::cpp::Wire<9> pyc_zext_8{};
-  pyc::cpp::Wire<9> pyc_not_9{};
-  pyc::cpp::Wire<9> pyc_add_10{};
-  pyc::cpp::Wire<9> pyc_add_11{};
-  pyc::cpp::Wire<1> pyc_extract_12{};
-  pyc::cpp::Wire<8> pyc_add_13{};
-  pyc::cpp::Wire<8> x__jit_control_flow__L12{};
-  pyc::cpp::Wire<8> pyc_add_14{};
-  pyc::cpp::Wire<8> x__jit_control_flow__L14{};
-  pyc::cpp::Wire<8> pyc_mux_15{};
+  pyc::cpp::Wire<8> x__jit_control_flow__L10{};
   pyc::cpp::Wire<8> x__jit_control_flow__L11{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L16{};
-  pyc::cpp::Wire<8> pyc_add_16{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L18{};
-  pyc::cpp::Wire<8> pyc_add_17{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L18_2{};
-  pyc::cpp::Wire<8> pyc_add_18{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L18_3{};
-  pyc::cpp::Wire<8> pyc_add_19{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L18_4{};
-  pyc::cpp::Wire<8> acc__jit_control_flow__L17{};
-  pyc::cpp::Wire<8> pyc_comb_20{};
+  pyc::cpp::Wire<8> x__jit_control_flow__L12{};
+  pyc::cpp::Wire<8> x__jit_control_flow__L14{};
 
 
   JitControlFlow() {
@@ -86,7 +86,7 @@ struct JitControlFlow {
   }
 
   void eval() {
-    eval_comb_pass();
+    eval_comb_0();
     out = pyc_comb_20;
   }
 

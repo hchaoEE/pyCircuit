@@ -26,6 +26,7 @@ def PYC_AddOp : PYC_Op<"add", [Pure, SameTypeOperands, SameOperandsAndResultType
   let arguments = (ins AnyInteger:$lhs, AnyInteger:$rhs);
   let results = (outs AnyInteger:$result);
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_MuxOp : PYC_Op<"mux", [Pure, AllTypesMatch<["a", "b", "result"]>]> {
@@ -34,6 +35,7 @@ def PYC_MuxOp : PYC_Op<"mux", [Pure, AllTypesMatch<["a", "b", "result"]>]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$sel `,` $a `,` $b attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_AndOp : PYC_Op<"and", [Pure, SameTypeOperands, SameOperandsAndResultType]> {
@@ -41,6 +43,7 @@ def PYC_AndOp : PYC_Op<"and", [Pure, SameTypeOperands, SameOperandsAndResultType
   let arguments = (ins AnyInteger:$lhs, AnyInteger:$rhs);
   let results = (outs AnyInteger:$result);
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_OrOp : PYC_Op<"or", [Pure, SameTypeOperands, SameOperandsAndResultType]> {
@@ -48,6 +51,7 @@ def PYC_OrOp : PYC_Op<"or", [Pure, SameTypeOperands, SameOperandsAndResultType]>
   let arguments = (ins AnyInteger:$lhs, AnyInteger:$rhs);
   let results = (outs AnyInteger:$result);
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_XorOp : PYC_Op<"xor", [Pure, SameTypeOperands, SameOperandsAndResultType]> {
@@ -55,6 +59,7 @@ def PYC_XorOp : PYC_Op<"xor", [Pure, SameTypeOperands, SameOperandsAndResultType
   let arguments = (ins AnyInteger:$lhs, AnyInteger:$rhs);
   let results = (outs AnyInteger:$result);
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_NotOp : PYC_Op<"not", [Pure, SameOperandsAndResultType]> {
@@ -63,6 +68,7 @@ def PYC_NotOp : PYC_Op<"not", [Pure, SameOperandsAndResultType]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_EqOp : PYC_Op<"eq", [Pure, SameTypeOperands]> {
@@ -70,6 +76,7 @@ def PYC_EqOp : PYC_Op<"eq", [Pure, SameTypeOperands]> {
   let arguments = (ins AnyInteger:$lhs, AnyInteger:$rhs);
   let results = (outs I1:$result);
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs)";
+  let hasFolder = 1;
 }
 
 def PYC_TruncOp : PYC_Op<"trunc", [Pure]> {
@@ -78,6 +85,7 @@ def PYC_TruncOp : PYC_Op<"trunc", [Pure]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($in) `->` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_ZextOp : PYC_Op<"zext", [Pure]> {
@@ -86,6 +94,7 @@ def PYC_ZextOp : PYC_Op<"zext", [Pure]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($in) `->` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_SextOp : PYC_Op<"sext", [Pure]> {
@@ -94,6 +103,7 @@ def PYC_SextOp : PYC_Op<"sext", [Pure]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($in) `->` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_ExtractOp : PYC_Op<"extract", [Pure]> {
@@ -102,6 +112,7 @@ def PYC_ExtractOp : PYC_Op<"extract", [Pure]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($in) `->` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_ShliOp : PYC_Op<"shli", [Pure, SameOperandsAndResultType]> {
@@ -110,6 +121,7 @@ def PYC_ShliOp : PYC_Op<"shli", [Pure, SameOperandsAndResultType]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$in attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_ConcatOp : PYC_Op<"concat", [Pure]> {
@@ -118,6 +130,7 @@ def PYC_ConcatOp : PYC_Op<"concat", [Pure]> {
   let results = (outs AnyInteger:$result);
   let hasVerifier = 1;
   let assemblyFormat = "`(` $inputs `)` attr-dict `:` `(` type($inputs) `)` `->` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_AliasOp : PYC_Op<"alias", [Pure, SameOperandsAndResultType]> {
@@ -125,6 +138,7 @@ def PYC_AliasOp : PYC_Op<"alias", [Pure, SameOperandsAndResultType]> {
   let arguments = (ins AnyType:$in);
   let results = (outs AnyType:$result);
   let assemblyFormat = "$in attr-dict `:` type($result)";
+  let hasFolder = 1;
 }
 
 def PYC_WireOp : PYC_Op<"wire"> {
@@ -175,7 +189,7 @@ def PYC_ByteMemOp : PYC_Op<"byte_mem", [MemoryEffects<[MemRead, MemWrite]>,
 // Fused combinational region (prototype).
 //
 // This is intended as a codegen-friendly wrapper that allows backends to emit
-// a single flattened combinational block (SV assigns / inlined C++ function)
+// a single flattened combinational block (Verilog assigns / inlined C++ function)
 // instead of instantiating lots of tiny primitives.
 def PYC_CombOp : PYC_Op<"comb", [Pure, IsolatedFromAbove]> {
   let summary = "Fused combinational region";

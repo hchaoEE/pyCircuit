@@ -35,7 +35,7 @@ install(FILES LICENSE README.md DESTINATION "${CMAKE_INSTALL_DATADIR}/pycircuit"
 # Packaging (binary tarball via CPack).
 set(CPACK_PACKAGE_NAME "pycircuit" CACHE STRING "CPack package name")
 set(CPACK_PACKAGE_VENDOR "pyCircuit" CACHE STRING "CPack package vendor")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pyCircuit: Python -> PYC (MLIR) -> SystemVerilog/C++" CACHE STRING "CPack summary")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "pyCircuit: Python -> PYC (MLIR) -> Verilog/C++" CACHE STRING "CPack summary")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}" CACHE STRING "CPack package version")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_GENERATOR "TGZ" CACHE STRING "CPack generator")

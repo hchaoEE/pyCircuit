@@ -5,7 +5,7 @@
 
 namespace pyc::cpp {
 
-// "Module-like" primitives that mirror the SystemVerilog templates in
+// "Module-like" primitives that mirror the Verilog templates in
 // `include/pyc/verilog/` (same names, same port names).
 //
 // These are intended as stable building blocks for generated C++ cycle-accurate
