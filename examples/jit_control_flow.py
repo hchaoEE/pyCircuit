@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+from pycircuit import Circuit
+
+
+def build(m: Circuit, N: int = 4) -> object:
+    a = m.in_wire("a", width=8)
+    b = m.in_wire("b", width=8)
+
+    x = a + b
+    if a == b:
+        x = x + 1
+    else:
+        x = x + 2
+
+    acc = x
+    for _ in range(N):
+        acc = acc + 1
+
+    return acc
