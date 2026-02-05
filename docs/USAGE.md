@@ -40,8 +40,8 @@ from pycircuit import Circuit
 def build(m: Circuit, STAGES: int = 3) -> None:
     dom = m.domain("sys")
 
-    a = m.in_wire("a", width=16)
-    b = m.in_wire("b", width=16)
+    a = m.input("a", width=16)
+    b = m.input("b", width=16)
 
     r = m.out("acc", domain=dom, width=16, init=0)
 
@@ -83,7 +83,7 @@ with m.scope("EX"):
 
 You must still provide widths for:
 
-- module ports: `m.in_wire("x", width=...)`
+- module ports: `m.input("x", width=...)`
 - state: `m.out("r", width=..., ...)`
 - any manually created wires: `m.new_wire(width=...)`
 
@@ -101,7 +101,7 @@ The frontend tries to remove common “cast noise”:
     previous value (if pre-defined) or defaults to `0`.
 
 If you need explicit signed behavior, use `.sext(...)` / `.ashr(...)` manually
-today. You can also mark signed intent at the edges (e.g. `m.in_wire(..., signed=True)`
+today. You can also mark signed intent at the edges (e.g. `m.input(..., signed=True)`
 or negative literals); signed intent is propagated through most arithmetic and
 selects signed lowering (`pyc.slt`, `pyc.sdiv`, `pyc.ashri`, etc).
 

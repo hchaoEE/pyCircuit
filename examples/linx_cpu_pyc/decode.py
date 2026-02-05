@@ -50,7 +50,7 @@ class Decode:
 
 @jit_inline
 def decode_window(m: Circuit, window: Wire) -> Decode:
-    c = m.const_wire
+    c = m.const
 
     zero3 = c(0, width=3)
     zero64 = c(0, width=64)

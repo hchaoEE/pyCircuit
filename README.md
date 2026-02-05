@@ -30,9 +30,9 @@ from pycircuit import Circuit, cat
 def build(m: Circuit, STAGES: int = 3) -> None:
     dom = m.domain("sys")
 
-    a = m.in_wire("a", width=16)
-    b = m.in_wire("b", width=16)
-    sel = m.in_wire("sel", width=1)
+    a = m.input("a", width=16)
+    b = m.input("b", width=16)
+    sel = m.input("sel", width=1)
 
     with m.scope("EX"):
         x = a ^ b

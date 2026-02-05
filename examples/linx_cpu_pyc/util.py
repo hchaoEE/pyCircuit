@@ -18,7 +18,7 @@ class Consts:
 
 
 def make_consts(m: Circuit) -> Consts:
-    c = m.const_wire
+    c = m.const
     return Consts(
         one1=c(1, width=1),
         zero1=c(0, width=1),

@@ -47,7 +47,7 @@ def _rob_update(
     d_ins: list[Wire] = []
     for i in range(depth):
         hit = ins_fire & delta.eq(i)
-        v_ins.append(hit.select(m.const_wire(1, width=1), rob.valid[i].out()))
+        v_ins.append(hit.select(m.const(1, width=1), rob.valid[i].out()))
         d_ins.append(hit.select(ins_data, rob.data[i].out()))
 
     for i in range(depth):
@@ -55,8 +55,8 @@ def _rob_update(
             v_next = commit_pop.select(v_ins[i + 1], v_ins[i])
             d_next = commit_pop.select(d_ins[i + 1], d_ins[i])
         else:
-            v_next = commit_pop.select(m.const_wire(0, width=1), v_ins[i])
-            d_next = commit_pop.select(m.const_wire(0, width=ins_data.width), d_ins[i])
+            v_next = commit_pop.select(m.const(0, width=1), v_ins[i])
+            d_next = commit_pop.select(m.const(0, width=ins_data.width), d_ins[i])
         rob.valid[i].set(v_next)
         rob.data[i].set(d_next)
 
@@ -85,7 +85,7 @@ def _hist_shift_insert(hist: _Hist, *, k: Wire, seqs: list[Wire], datas: list[Wi
 
         # k==1: [new3, old0, old1, ...]
         if i == 0:
-            v_k1 = m.const_wire(1, width=1)
+            v_k1 = m.const(1, width=1)
             s_k1 = seqs[0]
             d_k1 = datas[0]
         else:
@@ -95,11 +95,11 @@ def _hist_shift_insert(hist: _Hist, *, k: Wire, seqs: list[Wire], datas: list[Wi
 
         # k==2: [new3, new2, old0, old1, ...]
         if i == 0:
-            v_k2 = m.const_wire(1, width=1)
+            v_k2 = m.const(1, width=1)
             s_k2 = seqs[1]
             d_k2 = datas[1]
         elif i == 1:
-            v_k2 = m.const_wire(1, width=1)
+            v_k2 = m.const(1, width=1)
             s_k2 = seqs[0]
             d_k2 = datas[0]
         else:
@@ -109,15 +109,15 @@ def _hist_shift_insert(hist: _Hist, *, k: Wire, seqs: list[Wire], datas: list[Wi
 
         # k==3: [new3, new2, new1, old0, ...]
         if i == 0:
-            v_k3 = m.const_wire(1, width=1)
+            v_k3 = m.const(1, width=1)
             s_k3 = seqs[2]
             d_k3 = datas[2]
         elif i == 1:
-            v_k3 = m.const_wire(1, width=1)
+            v_k3 = m.const(1, width=1)
             s_k3 = seqs[1]
             d_k3 = datas[1]
         elif i == 2:
-            v_k3 = m.const_wire(1, width=1)
+            v_k3 = m.const(1, width=1)
             s_k3 = seqs[0]
             d_k3 = datas[0]
         else:
@@ -127,19 +127,19 @@ def _hist_shift_insert(hist: _Hist, *, k: Wire, seqs: list[Wire], datas: list[Wi
 
         # k==4: [new3, new2, new1, new0, old0, ...]
         if i == 0:
-            v_k4 = m.const_wire(1, width=1)
+            v_k4 = m.const(1, width=1)
             s_k4 = seqs[3]
             d_k4 = datas[3]
         elif i == 1:
-            v_k4 = m.const_wire(1, width=1)
+            v_k4 = m.const(1, width=1)
             s_k4 = seqs[2]
             d_k4 = datas[2]
         elif i == 2:
-            v_k4 = m.const_wire(1, width=1)
+            v_k4 = m.const(1, width=1)
             s_k4 = seqs[1]
             d_k4 = datas[1]
         elif i == 3:
-            v_k4 = m.const_wire(1, width=1)
+            v_k4 = m.const(1, width=1)
             s_k4 = seqs[0]
             d_k4 = datas[0]
         else:
@@ -209,9 +209,9 @@ def _build_fastfwd(
     clk = m.clock("clk")
     rst = m.reset("rst")
 
-    pkt_in_vld = [m.in_wire(f"lane{i}_pkt_in_vld", width=1) for i in range(4)]
-    pkt_in_data = [m.in_wire(f"lane{i}_pkt_in_data", width=128) for i in range(4)]
-    pkt_in_ctrl = [m.in_wire(f"lane{i}_pkt_in_ctrl", width=5) for i in range(4)]
+    pkt_in_vld = [m.input(f"lane{i}_pkt_in_vld", width=1) for i in range(4)]
+    pkt_in_data = [m.input(f"lane{i}_pkt_in_data", width=128) for i in range(4)]
+    pkt_in_ctrl = [m.input(f"lane{i}_pkt_in_ctrl", width=5) for i in range(4)]
 
     # Registered outputs (per spec).
     bkpr_r = m.out("pkt_in_bkpr", clk=clk, rst=rst, width=1, init=0)
@@ -219,8 +219,8 @@ def _build_fastfwd(
     out_data_r = [m.out(f"lane{i}_pkt_out_data", clk=clk, rst=rst, width=128, init=0) for i in range(4)]
 
     # Forwarding Engine interface (per-engine scalar ports).
-    fwded_vld = [m.in_wire(f"fwded{e}_pkt_data_vld", width=1) for e in range(total_eng)]
-    fwded_data = [m.in_wire(f"fwded{e}_pkt_data", width=128) for e in range(total_eng)]
+    fwded_vld = [m.input(f"fwded{e}_pkt_data_vld", width=1) for e in range(total_eng)]
+    fwded_data = [m.input(f"fwded{e}_pkt_data", width=128) for e in range(total_eng)]
 
     # ---- global regs ----
     with m.scope("TIME"):
@@ -278,7 +278,7 @@ def _build_fastfwd(
         accept = ~bkpr
 
         eff_v = [pkt_in_vld[i] & accept for i in range(4)]
-        inc = [eff_v[i].select(m.const_wire(1, width=seq_w), m.const_wire(0, width=seq_w)) for i in range(4)]
+        inc = [eff_v[i].select(m.const(1, width=seq_w), m.const(0, width=seq_w)) for i in range(4)]
 
         base = seq_alloc.out()
         seq_lane = [base, base + inc[0], base + inc[0] + inc[1], base + inc[0] + inc[1] + inc[2]]
@@ -286,8 +286,8 @@ def _build_fastfwd(
         seq_alloc.set(base + total_inc)
 
         # Map each accepted packet into its output-lane issue queue by seq%4.
-        push_v = [m.const_wire(0, width=1) for _ in range(4)]
-        push_d = [m.const_wire(0, width=bundle_w) for _ in range(4)]
+        push_v = [m.const(0, width=1) for _ in range(4)]
+        push_d = [m.const(0, width=bundle_w) for _ in range(4)]
 
         for i in range(4):
             seq_i = seq_lane[i]
@@ -313,26 +313,26 @@ def _build_fastfwd(
     # ---- dispatch (issue queues -> FE inputs) ----
     with m.scope("DISPATCH"):
         # Default FE outputs.
-        fwd_vld = [m.const_wire(0, width=1) for _ in range(total_eng)]
-        fwd_data = [m.const_wire(0, width=128) for _ in range(total_eng)]
-        fwd_lat = [m.const_wire(0, width=2) for _ in range(total_eng)]
-        fwd_dp_vld = [m.const_wire(0, width=1) for _ in range(total_eng)]
-        fwd_dp_data = [m.const_wire(0, width=128) for _ in range(total_eng)]
+        fwd_vld = [m.const(0, width=1) for _ in range(total_eng)]
+        fwd_data = [m.const(0, width=128) for _ in range(total_eng)]
+        fwd_lat = [m.const(0, width=2) for _ in range(total_eng)]
+        fwd_dp_vld = [m.const(0, width=1) for _ in range(total_eng)]
+        fwd_dp_data = [m.const(0, width=128) for _ in range(total_eng)]
 
         # Per-lane dispatch signals.
-        lane_pop = [m.const_wire(0, width=1) for _ in range(4)]
+        lane_pop = [m.const(0, width=1) for _ in range(4)]
 
         # Dependency lookup helpers (FEOUT bypass + completion queues + ROBs + history).
         def dep_lookup(dep_seq: Wire) -> tuple[Wire, Wire]:
-            found_fe = m.const_wire(0, width=1)
-            data_fe = m.const_wire(0, width=128)
+            found_fe = m.const(0, width=1)
+            data_fe = m.const(0, width=128)
             for e in range(total_eng):
                 match = pipes[e].valid[0].out() & fwded_vld[e] & pipes[e].seq[0].out().eq(dep_seq)
                 found_fe = found_fe | match
                 data_fe = match.select(fwded_data[e], data_fe)
 
-            found_cq = m.const_wire(0, width=1)
-            data_cq = m.const_wire(0, width=128)
+            found_cq = m.const(0, width=1)
+            data_cq = m.const(0, width=128)
             for e in range(total_eng):
                 vb = comp_q[e].out_valid
                 db = comp_q[e].out_data
@@ -341,16 +341,16 @@ def _build_fastfwd(
                 found_cq = found_cq | match
                 data_cq = match.select(db[0:128], data_cq)
 
-            found_h = m.const_wire(0, width=1)
-            data_h = m.const_wire(0, width=128)
+            found_h = m.const(0, width=1)
+            data_h = m.const(0, width=128)
             for i in range(hist_depth):
                 match = hist.valid[i].out() & (hist.seq[i].out().eq(dep_seq))
                 found_h = found_h | match
                 data_h = match.select(hist.data[i].out(), data_h)
 
             dep_lane = dep_seq[0:2]
-            found_r = m.const_wire(0, width=1)
-            data_r = m.const_wire(0, width=128)
+            found_r = m.const(0, width=1)
+            data_r = m.const(0, width=128)
             for lane in range(4):
                 is_lane = dep_lane.eq(lane)
                 delta = (dep_seq - exp_seq[lane].out()) >> 2
@@ -364,14 +364,14 @@ def _build_fastfwd(
             return found, data
 
         # Compute dispatch for each lane independently (one issue per lane per cycle).
-        dispatch_fire_eng = [m.const_wire(0, width=1) for _ in range(total_eng)]
-        dispatch_seq_eng = [m.const_wire(0, width=seq_w) for _ in range(total_eng)]
+        dispatch_fire_eng = [m.const(0, width=1) for _ in range(total_eng)]
+        dispatch_seq_eng = [m.const(0, width=seq_w) for _ in range(total_eng)]
 
         for lane in range(4):
             eng_base = lane * eng_per_lane
 
-            c0 = m.const_wire(0, width=1)
-            c1 = m.const_wire(1, width=1)
+            c0 = m.const(0, width=1)
+            c1 = m.const(1, width=1)
 
             def eng_free(e: int, lat: Wire) -> Wire:
                 """True when engine `e` can accept a dispatch with `lat` this cycle.
@@ -400,8 +400,8 @@ def _build_fastfwd(
             q_dep_found, q_dep_data = dep_lookup(q_dep_seq)
             q_dep_ok = (~q_dp_present) | q_dep_found
 
-            q_chosen = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
-            q_any_free = m.const_wire(0, width=1)
+            q_chosen = [m.const(0, width=1) for _ in range(eng_per_lane)]
+            q_any_free = m.const(0, width=1)
             for k in range(eng_per_lane):
                 e = eng_base + k
                 free = eng_free(e, q_lat)
@@ -413,17 +413,17 @@ def _build_fastfwd(
             q_delta = (q_seq - exp_seq[lane].out()) >> 2
 
             # ---- choose best candidate among stash window + queue head ----
-            best_v = m.const_wire(0, width=1)
-            best_delta = m.const_wire(0, width=seq_w)
-            best_is_q = m.const_wire(0, width=1)
-            best_stash_sel = [m.const_wire(0, width=1) for _ in range(stash_win)]
+            best_v = m.const(0, width=1)
+            best_delta = m.const(0, width=seq_w)
+            best_is_q = m.const(0, width=1)
+            best_stash_sel = [m.const(0, width=1) for _ in range(stash_win)]
 
-            best_seq = m.const_wire(0, width=seq_w)
-            best_data = m.const_wire(0, width=128)
-            best_lat = m.const_wire(0, width=2)
-            best_dp_present = m.const_wire(0, width=1)
-            best_dep_data = m.const_wire(0, width=128)
-            best_eng_sel = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+            best_seq = m.const(0, width=seq_w)
+            best_data = m.const(0, width=128)
+            best_lat = m.const(0, width=2)
+            best_dp_present = m.const(0, width=1)
+            best_dep_data = m.const(0, width=128)
+            best_eng_sel = [m.const(0, width=1) for _ in range(eng_per_lane)]
 
             for s in range(stash_win):
                 sv = stash_v[lane][s].out()
@@ -440,8 +440,8 @@ def _build_fastfwd(
                 dep_found, dep_data = dep_lookup(dep_seq)
                 dep_ok = (~dp_present) | dep_found
 
-                chosen = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
-                any_free = m.const_wire(0, width=1)
+                chosen = [m.const(0, width=1) for _ in range(eng_per_lane)]
+                any_free = m.const(0, width=1)
                 for k in range(eng_per_lane):
                     e = eng_base + k
                     free = eng_free(e, lat)
@@ -497,7 +497,7 @@ def _build_fastfwd(
 
             # ---- update stash and issue_q pop for this lane ----
             stash_v_mid = [stash_v[lane][s].out() & ~best_stash_sel[s] for s in range(stash_win)]
-            stash_free = m.const_wire(0, width=1)
+            stash_free = m.const(0, width=1)
             for s in range(stash_win):
                 stash_free = stash_free | ~stash_v_mid[s]
 
@@ -510,8 +510,8 @@ def _build_fastfwd(
             stash_in_fire = q_stash_pop
             stash_in_bundle = q_pop.data
 
-            stash_ins_sel = [m.const_wire(0, width=1) for _ in range(stash_win)]
-            any_free = m.const_wire(0, width=1)
+            stash_ins_sel = [m.const(0, width=1) for _ in range(stash_win)]
+            any_free = m.const(0, width=1)
             for s in range(stash_win):
                 free = ~stash_v_mid[s]
                 take = free & ~any_free
@@ -527,10 +527,10 @@ def _build_fastfwd(
 
     # ---- select completions into per-lane ROBs (<=1 per lane per cycle) ----
     with m.scope("ROB"):
-        comp_now_v = [m.const_wire(0, width=1) for _ in range(total_eng)]
-        comp_now_seq = [m.const_wire(0, width=seq_w) for _ in range(total_eng)]
-        comp_now_data = [m.const_wire(0, width=128) for _ in range(total_eng)]
-        comp_now_bus = [m.const_wire(0, width=comp_w) for _ in range(total_eng)]
+        comp_now_v = [m.const(0, width=1) for _ in range(total_eng)]
+        comp_now_seq = [m.const(0, width=seq_w) for _ in range(total_eng)]
+        comp_now_data = [m.const(0, width=128) for _ in range(total_eng)]
+        comp_now_bus = [m.const(0, width=comp_w) for _ in range(total_eng)]
 
         for e in range(total_eng):
             comp_now_v[e] = pipes[e].valid[0].out() & fwded_vld[e]
@@ -538,24 +538,24 @@ def _build_fastfwd(
             comp_now_data[e] = fwded_data[e]
             comp_now_bus[e] = cat(comp_now_seq[e], fwded_data[e])
 
-        direct_take_eng = [m.const_wire(0, width=1) for _ in range(total_eng)]
+        direct_take_eng = [m.const(0, width=1) for _ in range(total_eng)]
 
-        ins_fire_lane = [m.const_wire(0, width=1) for _ in range(4)]
-        ins_seq_lane = [m.const_wire(0, width=seq_w) for _ in range(4)]
-        ins_data_lane = [m.const_wire(0, width=128) for _ in range(4)]
+        ins_fire_lane = [m.const(0, width=1) for _ in range(4)]
+        ins_seq_lane = [m.const(0, width=seq_w) for _ in range(4)]
+        ins_data_lane = [m.const(0, width=128) for _ in range(4)]
 
         for lane in range(4):
             eng_base = lane * eng_per_lane
 
-            c0 = m.const_wire(0, width=1)
-            c1 = m.const_wire(1, width=1)
+            c0 = m.const(0, width=1)
+            c1 = m.const(1, width=1)
 
-            best_v = m.const_wire(0, width=1)
-            best_delta = m.const_wire(0, width=seq_w)
-            best_seq = m.const_wire(0, width=seq_w)
-            best_data = m.const_wire(0, width=128)
-            best_sel_direct = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
-            best_sel_buf = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+            best_v = m.const(0, width=1)
+            best_delta = m.const(0, width=seq_w)
+            best_seq = m.const(0, width=seq_w)
+            best_data = m.const(0, width=128)
+            best_sel_direct = [m.const(0, width=1) for _ in range(eng_per_lane)]
+            best_sel_buf = [m.const(0, width=1) for _ in range(eng_per_lane)]
 
             for k in range(eng_per_lane):
                 e = eng_base + k
@@ -601,9 +601,9 @@ def _build_fastfwd(
 
     # ---- completions (FEOUT -> per-engine completion queue) + pipeline update ----
     with m.scope("COMPLETE"):
-        c0 = m.const_wire(0, width=1)
-        c1 = m.const_wire(1, width=1)
-        zero_seq = m.const_wire(0, width=seq_w)
+        c0 = m.const(0, width=1)
+        c1 = m.const(1, width=1)
+        zero_seq = m.const(0, width=seq_w)
 
         for e in range(total_eng):
             do_buf = comp_now_v[e] & ~direct_take_eng[e]
@@ -647,19 +647,19 @@ def _build_fastfwd(
         # Compute commit prefixes for each possible start lane (0..3).
         def prefix(start_lane: int) -> tuple[list[Wire], Wire]:
             v = []
-            ok = m.const_wire(1, width=1)
+            ok = m.const(1, width=1)
             for k in range(4):
                 lane = (start_lane + k) & 3
                 ok = ok & lane_ready[lane]
                 v.append(ok)
             # commit_count in i3 (0..4).
             cnt = v[0].select(
-                m.const_wire(1, width=3),
-                m.const_wire(0, width=3),
+                m.const(1, width=3),
+                m.const(0, width=3),
             )
-            cnt = v[1].select(m.const_wire(2, width=3), cnt)
-            cnt = v[2].select(m.const_wire(3, width=3), cnt)
-            cnt = v[3].select(m.const_wire(4, width=3), cnt)
+            cnt = v[1].select(m.const(2, width=3), cnt)
+            cnt = v[2].select(m.const(3, width=3), cnt)
+            cnt = v[3].select(m.const(4, width=3), cnt)
             return v, cnt
 
         v0, c0 = prefix(0)
@@ -675,15 +675,15 @@ def _build_fastfwd(
         commit_cnt = is3.select(c3, is2.select(c2, is1.select(c1, c0)))
 
         # Output valids/data for physical lanes (registered).
-        out_v = [m.const_wire(0, width=1) for _ in range(4)]
-        out_d = [m.const_wire(0, width=128) for _ in range(4)]
+        out_v = [m.const(0, width=1) for _ in range(4)]
+        out_d = [m.const(0, width=128) for _ in range(4)]
 
         # commit_v_s[start_lane][k] means commit (k+1)th packet of this cycle (prefix) when starting at start_lane.
         commit_v_s = [v0, v1, v2, v3]
         for phys in range(4):
             # For each possible start, determine whether phys lane outputs.
-            vv = m.const_wire(0, width=1)
-            dd = m.const_wire(0, width=128)
+            vv = m.const(0, width=1)
+            dd = m.const(0, width=128)
             for s in range(4):
                 for k in range(4):
                     lane = (s + k) & 3
@@ -692,14 +692,14 @@ def _build_fastfwd(
                     hit = commit_v_s[s][k]
                     vv_s = hit
                     dd_s = hit.select(lane_data0[phys], dd)
-                    vv = (start.eq(s) & vv_s).select(m.const_wire(1, width=1), vv)
+                    vv = (start.eq(s) & vv_s).select(m.const(1, width=1), vv)
                     dd = (start.eq(s) & vv_s).select(lane_data0[phys], dd)
             out_v[phys] = vv
             out_d[phys] = dd
 
         for i in range(4):
             out_vld_r[i].set(out_v[i])
-            out_data_r[i].set(out_v[i].select(out_d[i], m.const_wire(0, width=128)))
+            out_data_r[i].set(out_v[i].select(out_d[i], m.const(0, width=128)))
 
         # Per-lane pop (shift) when that lane committed.
         commit_pop = out_v
@@ -710,7 +710,7 @@ def _build_fastfwd(
 
         # Update expected seq per lane.
         for lane in range(4):
-            inc4 = commit_pop[lane].select(m.const_wire(4, width=seq_w), m.const_wire(0, width=seq_w))
+            inc4 = commit_pop[lane].select(m.const(4, width=seq_w), m.const(0, width=seq_w))
             exp_seq[lane].set(exp_seq[lane].out() + inc4)
 
         # Update ROBs: insert completion then pop if committed.
@@ -726,13 +726,13 @@ def _build_fastfwd(
             )
 
         # Build commit seq/data for up to 4 outputs in-order (for history shift).
-        commit_seq_slots = [m.const_wire(0, width=seq_w) for _ in range(4)]
-        commit_data_slots = [m.const_wire(0, width=128) for _ in range(4)]
+        commit_seq_slots = [m.const(0, width=seq_w) for _ in range(4)]
+        commit_data_slots = [m.const(0, width=128) for _ in range(4)]
         for k in range(4):
-            lane_k = (start + m.const_wire(k, width=2))[0:2]
+            lane_k = (start + m.const(k, width=2))[0:2]
             # Select exp_seq/data based on lane_k.
-            s = m.const_wire(0, width=seq_w)
-            d = m.const_wire(0, width=128)
+            s = m.const(0, width=seq_w)
+            d = m.const(0, width=128)
             for lane in range(4):
                 is_lane = lane_k.eq(lane)
                 s = is_lane.select(exp_seq[lane].out(), s)
@@ -746,7 +746,7 @@ def _build_fastfwd(
     with m.scope("BKPR"):
         # Update shadow counts for each issue queue: cnt += push - pop.
         # Note: we use the queue fires as the source of truth.
-        bkpr_next = m.const_wire(0, width=1)
+        bkpr_next = m.const(0, width=1)
         for lane in range(4):
             push_i = push_fire[lane].zext(width=16)
             pop_i = lane_pop[lane].zext(width=16)

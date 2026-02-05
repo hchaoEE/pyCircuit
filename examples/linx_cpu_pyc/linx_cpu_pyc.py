@@ -22,8 +22,8 @@ def build(m: Circuit, *, mem_bytes: int = (1 << 20)) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
 
-    boot_pc = m.in_wire("boot_pc", width=64)
-    boot_sp = m.in_wire("boot_sp", width=64)
+    boot_pc = m.input("boot_pc", width=64)
+    boot_sp = m.input("boot_sp", width=64)
 
     consts = make_consts(m)
 
