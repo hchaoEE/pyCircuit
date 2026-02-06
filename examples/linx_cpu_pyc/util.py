@@ -10,6 +10,7 @@ class Consts:
     one1: Wire
     zero1: Wire
     zero3: Wire
+    zero4: Wire
     zero6: Wire
     zero8: Wire
     zero32: Wire
@@ -23,6 +24,7 @@ def make_consts(m: Circuit) -> Consts:
         one1=c(1, width=1),
         zero1=c(0, width=1),
         zero3=c(0, width=3),
+        zero4=c(0, width=4),
         zero6=c(0, width=6),
         zero8=c(0, width=8),
         zero32=c(0, width=32),

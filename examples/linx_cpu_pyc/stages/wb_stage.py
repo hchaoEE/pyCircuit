@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pycircuit import Circuit, Wire, jit_inline
 
 from ..isa import (
@@ -13,18 +15,16 @@ from ..isa import (
     OP_C_LWI,
     OP_C_SETC_EQ,
     OP_C_SETC_TGT,
-    OP_C_SWI,
     OP_C_BSTOP,
-    OP_SWI,
-    REG_INVALID,
-    ST_EX,
-    ST_ID,
-    ST_IF,
-    ST_MEM,
-    ST_WB,
 )
 from ..pipeline import CoreState, MemWbRegs, RegFiles
 from ..regfile import commit_gpr, commit_stack, stack_next
+
+
+@dataclass(frozen=True)
+class WbRedirect:
+    valid: Wire
+    pc: Wire
 
 
 @jit_inline
@@ -32,34 +32,26 @@ def build_wb_stage(
     m: Circuit,
     *,
     do_wb: Wire,
-    stage_is_if: Wire,
-    stage_is_id: Wire,
-    stage_is_ex: Wire,
-    stage_is_mem: Wire,
-    stage_is_wb: Wire,
-    stop: Wire,
-    halt_set: Wire,
     state: CoreState,
     memwb: MemWbRegs,
     rf: RegFiles,
-) -> None:
+) -> WbRedirect:
+    redirect = m.const(0, width=1)
+    redirect_pc = m.const(0, width=64)
     with m.scope("WB"):
-        # Stage inputs.
-        stage = state.stage.out()
-        pc = state.pc.out()
+        # Global control state.
         br_kind = state.br_kind.out()
         br_base_pc = state.br_base_pc.out()
         br_off = state.br_off.out()
         commit_cond = state.commit_cond.out()
         commit_tgt = state.commit_tgt.out()
 
+        # Current retiring instruction.
+        pc = memwb.pc.out()
         op = memwb.op.out()
-        len_bytes = memwb.len_bytes.out()
         regdst = memwb.regdst.out()
         value = memwb.value.out()
-
-        # Halt flag (latches even when stop inhibits do_wb).
-        state.halted.set(1, when=halt_set)
+        is_store = memwb.is_store.out()
 
         # --- BlockISA control flow ---
         op_c_bstart_std = op == OP_C_BSTART_STD
@@ -80,28 +72,7 @@ def build_wb_stage(
 
         br_take = br_is_call | br_is_ret | (br_is_cond & commit_cond)
 
-        pc_inc = pc + len_bytes
-        pc_next = pc_inc
-        if op_is_boundary & br_take:
-            pc_next = br_target_pc
-        state.pc.set(pc_next, when=do_wb)
-
-        # Stage machine: IF -> ID -> EX -> MEM -> WB -> IF, gated by stop.
-        stage_seq = stage
-        if stage_is_if:
-            stage_seq = ST_ID
-        if stage_is_id:
-            stage_seq = ST_EX
-        if stage_is_ex:
-            stage_seq = ST_MEM
-        if stage_is_mem:
-            stage_seq = ST_WB
-        if stage_is_wb:
-            stage_seq = ST_IF
-        state.stage.set(stage_seq, when=~stop)
-
-        # Cycle counter (always increments; TB stops on halt).
-        state.cycles.set(state.cycles.out() + 1)
+        redirect = do_wb & op_is_boundary & br_take
 
         # --- Block control state updates ---
         # Commit-argument setters.
@@ -169,8 +140,7 @@ def build_wb_stage(
         state.br_off.set(br_off_next)
 
         # Register writeback + T/U stacks.
-        wb_is_store = (op == OP_SWI) | (op == OP_C_SWI)
-        do_reg_write = do_wb & (~wb_is_store) & (regdst != REG_INVALID)
+        do_reg_write = do_wb & (~is_store) & (regdst != 0x3F)
 
         do_clear_hands = do_wb & op_is_start_marker
         do_push_t = do_wb & (op == OP_C_LWI)
@@ -184,3 +154,7 @@ def build_wb_stage(
         u_next = stack_next(m, rf.u, do_push=do_push_u, do_clear=do_clear_hands, value=memwb.value)
         commit_stack(m, rf.t, t_next)
         commit_stack(m, rf.u, u_next)
+
+        redirect_pc = br_target_pc
+
+    return WbRedirect(valid=redirect, pc=redirect_pc)

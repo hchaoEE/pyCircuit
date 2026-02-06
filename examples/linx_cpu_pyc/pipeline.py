@@ -7,7 +7,6 @@ from pycircuit import Reg
 
 @dataclass(frozen=True)
 class CoreState:
-    stage: Reg
     pc: Reg
     br_kind: Reg
     br_base_pc: Reg
@@ -20,11 +19,16 @@ class CoreState:
 
 @dataclass(frozen=True)
 class IfIdRegs:
+    valid: Reg
+    pc: Reg
     window: Reg
 
 
 @dataclass(frozen=True)
 class IdExRegs:
+    valid: Reg
+    pc: Reg
+    window: Reg
     op: Reg
     len_bytes: Reg
     regdst: Reg
@@ -39,6 +43,9 @@ class IdExRegs:
 
 @dataclass(frozen=True)
 class ExMemRegs:
+    valid: Reg
+    pc: Reg
+    window: Reg
     op: Reg
     len_bytes: Reg
     regdst: Reg
@@ -52,10 +59,18 @@ class ExMemRegs:
 
 @dataclass(frozen=True)
 class MemWbRegs:
+    valid: Reg
+    pc: Reg
+    window: Reg
     op: Reg
     len_bytes: Reg
     regdst: Reg
     value: Reg
+    # Store-commit fields (stores commit in WB for precise flush behavior).
+    is_store: Reg
+    size: Reg
+    addr: Reg
+    wdata: Reg
 
 
 @dataclass(frozen=True)

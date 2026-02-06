@@ -27,27 +27,127 @@ from ..isa import (
     OP_SUBI,
     OP_SWI,
     OP_XORW,
+    REG_INVALID,
 )
 from ..pipeline import ExMemRegs, IdExRegs
 from ..util import Consts
 
 
 @jit_inline
-def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: ExMemRegs, consts: Consts) -> None:
+def build_ex_stage(
+    m: Circuit,
+    *,
+    do_ex: Wire,
+    idex: IdExRegs,
+    exmem: ExMemRegs,
+    consts: Consts,
+    # Forwarding sources (from MEM and WB stages).
+    mem_fwd_valid: Wire,
+    mem_fwd_regdst: Wire,
+    mem_fwd_value: Wire,
+    wb_fwd_valid: Wire,
+    wb_fwd_regdst: Wire,
+    wb_fwd_value: Wire,
+    # Forwarded T/U stack views for this EX stage (after applying older in-flight
+    # pushes/clears from WB+MEM).
+    t0_fwd: Wire,
+    t1_fwd: Wire,
+    t2_fwd: Wire,
+    t3_fwd: Wire,
+    u0_fwd: Wire,
+    u1_fwd: Wire,
+    u2_fwd: Wire,
+    u3_fwd: Wire,
+) -> None:
     with m.scope("EX"):
         z1 = consts.zero1
-        z3 = consts.zero3
+        z4 = consts.zero4
         z64 = consts.zero64
 
         # Stage inputs.
-        pc = pc.out()
+        pc = idex.pc.out()
+        window = idex.window.out()
         op = idex.op.out()
         len_bytes = idex.len_bytes.out()
         regdst = idex.regdst.out()
+        srcl = idex.srcl.out()
+        srcr = idex.srcr.out()
+        srcp = idex.srcp.out()
         srcl_val = idex.srcl_val.out()
         srcr_val = idex.srcr_val.out()
         srcp_val = idex.srcp_val.out()
         imm = idex.imm.out()
+
+        # Operand forwarding (priority: MEM over WB).
+        can_fwd_mem = mem_fwd_valid & (mem_fwd_regdst != REG_INVALID) & (mem_fwd_regdst != 0)
+        can_fwd_wb = wb_fwd_valid & (wb_fwd_regdst != REG_INVALID) & (wb_fwd_regdst != 0)
+
+        if can_fwd_mem & (mem_fwd_regdst == srcl):
+            srcl_val = mem_fwd_value
+        if can_fwd_wb & (wb_fwd_regdst == srcl) & (~(can_fwd_mem & (mem_fwd_regdst == srcl))):
+            srcl_val = wb_fwd_value
+
+        if can_fwd_mem & (mem_fwd_regdst == srcr):
+            srcr_val = mem_fwd_value
+        if can_fwd_wb & (wb_fwd_regdst == srcr) & (~(can_fwd_mem & (mem_fwd_regdst == srcr))):
+            srcr_val = wb_fwd_value
+
+        if can_fwd_mem & (mem_fwd_regdst == srcp):
+            srcp_val = mem_fwd_value
+        if can_fwd_wb & (wb_fwd_regdst == srcp) & (~(can_fwd_mem & (mem_fwd_regdst == srcp))):
+            srcp_val = wb_fwd_value
+
+        # T/U stack bypass (codes: T0..T3 = 24..27, U0..U3 = 28..31).
+        if srcl == 24:
+            srcl_val = t0_fwd
+        if srcl == 25:
+            srcl_val = t1_fwd
+        if srcl == 26:
+            srcl_val = t2_fwd
+        if srcl == 27:
+            srcl_val = t3_fwd
+        if srcl == 28:
+            srcl_val = u0_fwd
+        if srcl == 29:
+            srcl_val = u1_fwd
+        if srcl == 30:
+            srcl_val = u2_fwd
+        if srcl == 31:
+            srcl_val = u3_fwd
+
+        if srcr == 24:
+            srcr_val = t0_fwd
+        if srcr == 25:
+            srcr_val = t1_fwd
+        if srcr == 26:
+            srcr_val = t2_fwd
+        if srcr == 27:
+            srcr_val = t3_fwd
+        if srcr == 28:
+            srcr_val = u0_fwd
+        if srcr == 29:
+            srcr_val = u1_fwd
+        if srcr == 30:
+            srcr_val = u2_fwd
+        if srcr == 31:
+            srcr_val = u3_fwd
+
+        if srcp == 24:
+            srcp_val = t0_fwd
+        if srcp == 25:
+            srcp_val = t1_fwd
+        if srcp == 26:
+            srcp_val = t2_fwd
+        if srcp == 27:
+            srcp_val = t3_fwd
+        if srcp == 28:
+            srcp_val = u0_fwd
+        if srcp == 29:
+            srcp_val = u1_fwd
+        if srcp == 30:
+            srcp_val = u2_fwd
+        if srcp == 31:
+            srcp_val = u3_fwd
 
         op_c_bstart_std = op == OP_C_BSTART_STD
         op_c_bstart_cond = op == OP_C_BSTART_COND
@@ -79,7 +179,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
         alu = z64
         is_load = z1
         is_store = z1
-        size = z3
+        size = z4
         addr = z64
         wdata = z64
 
@@ -88,7 +188,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -97,7 +197,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = srcl_val
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -106,7 +206,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -115,7 +215,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = pc + imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -127,14 +227,14 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = setc_eq
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         if op_c_setc_tgt:
             alu = srcl_val
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -144,7 +244,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = pc_page + imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -153,7 +253,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = srcl_val + imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         subi = srcl_val + ((~imm) + 1)
@@ -161,7 +261,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = subi
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         addiw = (srcl_val.trunc(width=32) + imm.trunc(width=32)).sext(width=64)
@@ -169,7 +269,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = addiw
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -182,28 +282,28 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = addw
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         if op_orw:
             alu = orw
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         if op_andw:
             alu = andw
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
         if op_xorw:
             alu = xorw
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -215,7 +315,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = cmp
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -224,7 +324,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = imm
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -236,7 +336,7 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             alu = csel_val
             is_load = z1
             is_store = z1
-            size = z3
+            size = z4
             addr = z64
             wdata = z64
 
@@ -277,6 +377,8 @@ def build_ex_stage(m: Circuit, *, do_ex: Wire, pc: Wire, idex: IdExRegs, exmem: 
             wdata = srcl_val
 
         # Pipeline regs: EX/MEM.
+        exmem.pc.set(pc, when=do_ex)
+        exmem.window.set(window, when=do_ex)
         exmem.op.set(op, when=do_ex)
         exmem.len_bytes.set(len_bytes, when=do_ex)
         exmem.regdst.set(regdst, when=do_ex)

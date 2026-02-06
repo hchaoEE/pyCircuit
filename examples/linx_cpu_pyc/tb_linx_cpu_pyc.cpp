@@ -118,9 +118,12 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
   if (expectedA0.has_value()) {
     std::uint64_t got = dut.a0.value();
     if (got != *expectedA0) {
+      std::uint32_t mem0 = dut.mem.peek32(0x0);
+      std::uint32_t mem20000 = dut.mem.peek32(0x20000);
       std::cerr << "FAIL " << name << ": a0=0x" << std::hex << got << " expected 0x" << *expectedA0
                 << " (pc=0x" << dut.pc.value() << " a1=0x" << dut.a1.value() << " ra=0x" << dut.ra.value()
-                << " sp=0x" << dut.sp.value() << ")" << std::dec << "\n";
+                << " sp=0x" << dut.sp.value() << " mem[0]=0x" << mem0 << " mem[0x20000]=0x" << mem20000 << ")"
+                << std::dec << "\n";
       return false;
     }
   }
