@@ -61,15 +61,46 @@ def stack_next(m: Circuit, arr: list[Reg], *, do_push: Wire, do_clear: Wire, val
     return m.vec(n0, n1, n2, n3)
 
 
-def commit_gpr(m: Circuit, gpr: list[Reg], *, do_reg_write: Wire, regdst: Reg, value: Reg) -> None:
+def commit_gpr(
+    m: Circuit,
+    gpr: list[Reg],
+    *,
+    do_reg_write0: Wire,
+    regdst0: Wire | Reg,
+    value0: Wire | Reg,
+    do_reg_write1: Wire | None = None,
+    regdst1: Wire | Reg | None = None,
+    value1: Wire | Reg | None = None,
+    macro_do_reg_write: Wire | None = None,
+    macro_regdst: Wire | Reg | None = None,
+    macro_value: Wire | Reg | None = None,
+) -> None:
     c = m.const
     zero64 = m.const(0, width=64)
+    if do_reg_write1 is None:
+        do_reg_write1 = m.const(0, width=1)
+    if regdst1 is None:
+        regdst1 = m.const(REG_INVALID, width=6)
+    if value1 is None:
+        value1 = zero64
+    if macro_do_reg_write is None:
+        macro_do_reg_write = m.const(0, width=1)
+    if macro_regdst is None:
+        macro_regdst = m.const(REG_INVALID, width=6)
+    if macro_value is None:
+        macro_value = zero64
     for i in range(24):
         if i == 0:
             gpr[i].set(zero64)
             continue
-        we = do_reg_write & regdst.eq(c(i, width=6))
-        gpr[i].set(value, when=we)
+        we_pipe0 = do_reg_write0 & regdst0.eq(c(i, width=6))
+        we_pipe1 = do_reg_write1 & regdst1.eq(c(i, width=6))
+        we_macro = macro_do_reg_write & macro_regdst.eq(c(i, width=6))
+        we = we_pipe0 | we_pipe1 | we_macro
+        # Priority: macro (highest), then younger pipe lane (1), then older (0).
+        wdata_pipe = we_pipe1.select(value1, value0)
+        wdata = we_macro.select(macro_value, wdata_pipe)
+        gpr[i].set(wdata, when=we)
 
 
 def commit_stack(m: Circuit, arr: list[Reg], next_vals: list[Wire]) -> None:
