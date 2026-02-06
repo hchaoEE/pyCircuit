@@ -49,6 +49,27 @@ def mux_read(m: Circuit, idx: Wire, entries: list[Wire | Reg], *, default: int =
     return v
 
 
+def make_bp_table(
+    m: Circuit,
+    clk,
+    rst,
+    *,
+    entries: int,
+    en: Wire,
+) -> tuple[list[Reg], list[Reg], list[Reg], list[Reg]]:
+    """Allocate a tiny BTB/BHT table as named regs (JIT-time elaboration)."""
+    bp_valid: list[Reg] = []
+    bp_tag: list[Reg] = []
+    bp_target: list[Reg] = []
+    bp_ctr: list[Reg] = []
+    for i in range(int(entries)):
+        bp_valid.append(m.out(f"valid{i}", clk=clk, rst=rst, width=1, init=0, en=en))
+        bp_tag.append(m.out(f"tag{i}", clk=clk, rst=rst, width=64, init=0, en=en))
+        bp_target.append(m.out(f"target{i}", clk=clk, rst=rst, width=64, init=0, en=en))
+        bp_ctr.append(m.out(f"ctr{i}", clk=clk, rst=rst, width=2, init=0, en=en))
+    return bp_valid, bp_tag, bp_target, bp_ctr
+
+
 @jit_inline
 def shl_var(m: Circuit, value: Wire, shamt: Wire) -> Wire:
     """Variable shift-left by `shamt` (uses low 6 bits)."""

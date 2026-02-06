@@ -60,7 +60,7 @@ from examples.linx_cpu_pyc.stages.id_stage import build_id_stage
 from examples.linx_cpu_pyc.stages.if_stage import build_if_stage
 from examples.linx_cpu_pyc.stages.mem_stage import build_mem_stage
 from examples.linx_cpu_pyc.stages.wb_stage import build_wb_stage
-from examples.linx_cpu_pyc.util import lshr_var, make_consts, mux_read
+from examples.linx_cpu_pyc.util import lshr_var, make_bp_table, make_consts, mux_read
 
 
 def build(
@@ -105,14 +105,11 @@ def build(
     # learns at runtime. This is only used for boundary markers (BlockISA).
     bp_entries = 64
     with m.scope("bp"):
-        bp_valid = [
-            m.out(f"valid{i}", clk=clk, rst=rst, width=1, init=0, en=consts.one1) for i in range(bp_entries)
-        ]
-        bp_tag = [m.out(f"tag{i}", clk=clk, rst=rst, width=64, init=0, en=consts.one1) for i in range(bp_entries)]
-        bp_target = [
-            m.out(f"target{i}", clk=clk, rst=rst, width=64, init=0, en=consts.one1) for i in range(bp_entries)
-        ]
-        bp_ctr = [m.out(f"ctr{i}", clk=clk, rst=rst, width=2, init=0, en=consts.one1) for i in range(bp_entries)]
+        bp = make_bp_table(m, clk, rst, entries=bp_entries, en=consts.one1)
+        bp_valid = bp[0]
+        bp_tag = bp[1]
+        bp_target = bp[2]
+        bp_ctr = bp[3]
 
     with m.scope("ifid0"):
         pipe_ifid0 = IfIdRegs(
@@ -989,8 +986,8 @@ def build(
         fetch_incr = fetch_incr + len1.zext(width=64)
 
     pc_next = fetch_pc
-    if wb.valid:
-        pc_next = wb.pc
+    if mispredict:
+        pc_next = wb.next_pc
     if irq_take:
         pc_next = irq_vector
     if macro_pc_set_valid:

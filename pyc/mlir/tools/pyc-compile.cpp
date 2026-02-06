@@ -74,6 +74,7 @@ int main(int argc, char **argv) {
   pm.addNestedPass<func::FuncOp>(pyc::createLowerSCFToPYCStaticPass());
   pm.addNestedPass<func::FuncOp>(pyc::createEliminateWiresPass());
   pm.addNestedPass<func::FuncOp>(pyc::createCombCanonicalizePass());
+  pm.addNestedPass<func::FuncOp>(pyc::createPackI1RegsPass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
