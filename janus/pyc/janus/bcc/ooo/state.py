@@ -71,6 +71,8 @@ class IqRegs:
     imm: list[Reg]
     srcl: list[Reg]
     srcr: list[Reg]
+    srcr_type: list[Reg]
+    shamt: list[Reg]
     srcp: list[Reg]
     pdst: list[Reg]
     has_dst: list[Reg]
@@ -88,7 +90,8 @@ def make_core_ctrl_regs(m: Circuit, clk: Signal, rst: Signal, *, boot_pc: Wire, 
         # Fetch PC (fall-through only; redirected on commit-time boundary).
         fpc = m.out("fpc", clk=clk, rst=rst, width=64, init=boot_pc, en=consts.one1)
 
-        br_kind = m.out("br_kind", clk=clk, rst=rst, width=2, init=c(BK_FALL, width=2), en=consts.one1)
+        # Block transition kind (must cover BK_DIRECT/BK_IND/BK_ICALL).
+        br_kind = m.out("br_kind", clk=clk, rst=rst, width=3, init=c(BK_FALL, width=3), en=consts.one1)
         br_base_pc = m.out("br_base_pc", clk=clk, rst=rst, width=64, init=boot_pc, en=consts.one1)
         br_off = m.out("br_off", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1)
         commit_cond = m.out("commit_cond", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1)
@@ -182,7 +185,7 @@ def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Oo
             value.append(m.out(f"val{i}", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1))
             store_addr.append(m.out(f"sta{i}", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1))
             store_data.append(m.out(f"std{i}", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1))
-            store_size.append(m.out(f"sts{i}", clk=clk, rst=rst, width=3, init=consts.zero3, en=consts.one1))
+            store_size.append(m.out(f"sts{i}", clk=clk, rst=rst, width=4, init=consts.zero4, en=consts.one1))
             is_store.append(m.out(f"isst{i}", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1))
 
     return RobRegs(
@@ -216,6 +219,8 @@ def make_iq_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Ooo
         imm: list[Reg] = []
         srcl: list[Reg] = []
         srcr: list[Reg] = []
+        srcr_type: list[Reg] = []
+        shamt: list[Reg] = []
         srcp: list[Reg] = []
         pdst: list[Reg] = []
         has_dst: list[Reg] = []
@@ -227,8 +232,23 @@ def make_iq_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Ooo
             imm.append(m.out(f"imm{i}", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1))
             srcl.append(m.out(f"sl{i}", clk=clk, rst=rst, width=p.ptag_w, init=tag0, en=consts.one1))
             srcr.append(m.out(f"sr{i}", clk=clk, rst=rst, width=p.ptag_w, init=tag0, en=consts.one1))
+            srcr_type.append(m.out(f"st{i}", clk=clk, rst=rst, width=2, init=consts.zero1.zext(width=2), en=consts.one1))
+            shamt.append(m.out(f"sh{i}", clk=clk, rst=rst, width=6, init=consts.zero6, en=consts.one1))
             srcp.append(m.out(f"sp{i}", clk=clk, rst=rst, width=p.ptag_w, init=tag0, en=consts.one1))
             pdst.append(m.out(f"pd{i}", clk=clk, rst=rst, width=p.ptag_w, init=tag0, en=consts.one1))
             has_dst.append(m.out(f"hd{i}", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1))
 
-    return IqRegs(valid=valid, rob=rob, op=op, pc=pc, imm=imm, srcl=srcl, srcr=srcr, srcp=srcp, pdst=pdst, has_dst=has_dst)
+    return IqRegs(
+        valid=valid,
+        rob=rob,
+        op=op,
+        pc=pc,
+        imm=imm,
+        srcl=srcl,
+        srcr=srcr,
+        srcr_type=srcr_type,
+        shamt=shamt,
+        srcp=srcp,
+        pdst=pdst,
+        has_dst=has_dst,
+    )
