@@ -23,6 +23,16 @@ class CoreCtrlRegs:
     commit_tgt: Reg
     flush_pending: Reg
     flush_pc: Reg
+    macro_active: Reg
+    macro_wait_commit: Reg
+    macro_phase: Reg
+    macro_op: Reg
+    macro_begin: Reg
+    macro_end: Reg
+    macro_stacksize: Reg
+    macro_reg: Reg
+    macro_i: Reg
+    macro_sp_base: Reg
 
 
 @dataclass(frozen=True)
@@ -60,6 +70,8 @@ class RobRegs:
     store_data: list[Reg]
     store_size: list[Reg]
     is_store: list[Reg]
+    macro_begin: list[Reg]
+    macro_end: list[Reg]
 
 
 @dataclass(frozen=True)
@@ -101,6 +113,18 @@ def make_core_ctrl_regs(m: Circuit, clk: Signal, rst: Signal, *, boot_pc: Wire, 
         flush_pending = m.out("flush_pending", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1)
         flush_pc = m.out("flush_pc", clk=clk, rst=rst, width=64, init=boot_pc, en=consts.one1)
 
+        # Template macro blocks (FENTRY/FEXIT/FRET.*) microcode.
+        macro_active = m.out("macro_active", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1)
+        macro_wait_commit = m.out("macro_wait_commit", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1)
+        macro_phase = m.out("macro_phase", clk=clk, rst=rst, width=2, init=consts.zero1.zext(width=2), en=consts.one1)
+        macro_op = m.out("macro_op", clk=clk, rst=rst, width=12, init=c(0, width=12), en=consts.one1)
+        macro_begin = m.out("macro_begin", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1)
+        macro_end = m.out("macro_end", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1)
+        macro_stacksize = m.out("macro_stacksize", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1)
+        macro_reg = m.out("macro_reg", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1)
+        macro_i = m.out("macro_i", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1)
+        macro_sp_base = m.out("macro_sp_base", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1)
+
     return CoreCtrlRegs(
         halted=halted,
         cycles=cycles,
@@ -113,6 +137,16 @@ def make_core_ctrl_regs(m: Circuit, clk: Signal, rst: Signal, *, boot_pc: Wire, 
         commit_tgt=commit_tgt,
         flush_pending=flush_pending,
         flush_pc=flush_pc,
+        macro_active=macro_active,
+        macro_wait_commit=macro_wait_commit,
+        macro_phase=macro_phase,
+        macro_op=macro_op,
+        macro_begin=macro_begin,
+        macro_end=macro_end,
+        macro_stacksize=macro_stacksize,
+        macro_reg=macro_reg,
+        macro_i=macro_i,
+        macro_sp_base=macro_sp_base,
     )
 
 
@@ -173,6 +207,8 @@ def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Oo
         store_data: list[Reg] = []
         store_size: list[Reg] = []
         is_store: list[Reg] = []
+        macro_begin: list[Reg] = []
+        macro_end: list[Reg] = []
 
         for i in range(p.rob_depth):
             valid.append(m.out(f"v{i}", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1))
@@ -187,6 +223,8 @@ def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Oo
             store_data.append(m.out(f"std{i}", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1))
             store_size.append(m.out(f"sts{i}", clk=clk, rst=rst, width=4, init=consts.zero4, en=consts.one1))
             is_store.append(m.out(f"isst{i}", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1))
+            macro_begin.append(m.out(f"mb{i}", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1))
+            macro_end.append(m.out(f"me{i}", clk=clk, rst=rst, width=6, init=c(0, width=6), en=consts.one1))
 
     return RobRegs(
         head=head,
@@ -204,6 +242,8 @@ def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Oo
         store_data=store_data,
         store_size=store_size,
         is_store=is_store,
+        macro_begin=macro_begin,
+        macro_end=macro_end,
     )
 
 

@@ -20,20 +20,28 @@ if [[ ! -f "${VLOG}" ]]; then
 fi
 
 TB_SV="${ROOT_DIR}/janus/tb/tb_janus_bcc_ooo_pyc.sv"
-WORK_DIR="$(mktemp -d -t janus_bcc_ooo_vlt.XXXXXX)"
-trap 'rm -rf "${WORK_DIR}"' EXIT
+OBJ_DIR="${GEN_DIR}/verilator_obj"
+EXE="${OBJ_DIR}/Vtb_janus_bcc_ooo_pyc"
 
-"${VERILATOR}" \
-  --binary \
-  --timing \
-  -Wno-fatal \
-  -I"${ROOT_DIR}/include/pyc/verilog" \
-  --top-module tb_janus_bcc_ooo_pyc \
-  "${TB_SV}" \
-  "${VLOG}" \
-  --Mdir "${WORK_DIR}/obj_dir"
+need_build=0
+if [[ ! -x "${EXE}" ]]; then
+  need_build=1
+elif [[ "${TB_SV}" -nt "${EXE}" || "${VLOG}" -nt "${EXE}" ]]; then
+  need_build=1
+fi
 
-EXE="${WORK_DIR}/obj_dir/Vtb_janus_bcc_ooo_pyc"
+if [[ "${need_build}" -ne 0 ]]; then
+  mkdir -p "${OBJ_DIR}"
+  "${VERILATOR}" \
+    --binary \
+    --timing \
+    -Wno-fatal \
+    -I"${ROOT_DIR}/include/pyc/verilog" \
+    --top-module tb_janus_bcc_ooo_pyc \
+    "${TB_SV}" \
+    "${VLOG}" \
+    --Mdir "${OBJ_DIR}"
+fi
 
 run_case() {
   local name="$1"

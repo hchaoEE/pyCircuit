@@ -13,17 +13,29 @@ if [[ ! -f "${HDR}" ]]; then
   bash "${ROOT_DIR}/janus/update_generated.sh"
 fi
 
-WORK_DIR="$(mktemp -d -t janus_bcc_ooo_pyc_tb.XXXXXX)"
-trap 'rm -rf "${WORK_DIR}"' EXIT
+TB_SRC="${ROOT_DIR}/janus/tb/tb_janus_bcc_ooo_pyc.cpp"
+TB_EXE="${GEN_DIR}/tb_janus_bcc_ooo_pyc_cpp"
 
-"${CXX:-clang++}" -std=c++17 -O2 \
-  -I "${ROOT_DIR}/include" \
-  -I "${GEN_DIR}" \
-  -o "${WORK_DIR}/tb_janus_bcc_ooo_pyc" \
-  "${ROOT_DIR}/janus/tb/tb_janus_bcc_ooo_pyc.cpp"
+need_build=0
+if [[ ! -x "${TB_EXE}" ]]; then
+  need_build=1
+elif [[ "${TB_SRC}" -nt "${TB_EXE}" || "${HDR}" -nt "${TB_EXE}" ]]; then
+  need_build=1
+fi
+
+if [[ "${need_build}" -ne 0 ]]; then
+  mkdir -p "${GEN_DIR}"
+  tmp_exe="${TB_EXE}.tmp.$$"
+  "${CXX:-clang++}" -std=c++17 -O3 -DNDEBUG \
+    -I "${ROOT_DIR}/include" \
+    -I "${GEN_DIR}" \
+    -o "${tmp_exe}" \
+    "${TB_SRC}"
+  mv -f "${tmp_exe}" "${TB_EXE}"
+fi
 
 if [[ $# -gt 0 ]]; then
-  "${WORK_DIR}/tb_janus_bcc_ooo_pyc" "$@"
+  "${TB_EXE}" "$@"
 else
-  "${WORK_DIR}/tb_janus_bcc_ooo_pyc"
+  "${TB_EXE}"
 fi

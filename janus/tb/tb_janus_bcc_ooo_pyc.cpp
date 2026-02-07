@@ -18,6 +18,8 @@ namespace {
 
 constexpr std::uint64_t kBootPc = 0x0000'0000'0001'0000ull;
 constexpr std::uint64_t kBootSp = 0x0000'0000'0002'0000ull;
+constexpr std::uint64_t kDefaultMaxCycles = 400000;
+constexpr std::uint64_t kExitPcStableCycles = 8;
 
 template <unsigned AddrWidth, unsigned DataWidth, std::size_t DepthBytes>
 static bool loadMemh(pyc::cpp::pyc_byte_mem<AddrWidth, DataWidth, DepthBytes> &mem, const std::string &path) {
@@ -50,7 +52,11 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
     return false;
 
   dut.boot_pc = Wire<64>(bootPc);
-  dut.boot_sp = Wire<64>(kBootSp);
+  std::uint64_t bootSp = kBootSp;
+  if (const char *env = std::getenv("PYC_BOOT_SP")) {
+    bootSp = static_cast<std::uint64_t>(std::stoull(env, nullptr, 0));
+  }
+  dut.boot_sp = Wire<64>(bootSp);
 
   Testbench<pyc::gen::janus_bcc_ooo_pyc> tb(dut);
 
@@ -110,6 +116,10 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
       tb.vcdTrace(dut.mem_raddr, "mem_raddr");
       tb.vcdTrace(dut.dispatch_fire, "dispatch_fire");
       tb.vcdTrace(dut.dec_op, "dec_op");
+      tb.vcdTrace(dut.mmio_uart_valid, "mmio_uart_valid");
+      tb.vcdTrace(dut.mmio_uart_data, "mmio_uart_data");
+      tb.vcdTrace(dut.mmio_exit_valid, "mmio_exit_valid");
+      tb.vcdTrace(dut.mmio_exit_code, "mmio_exit_code");
     }
   }
 
@@ -120,7 +130,22 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
   std::uint64_t issueCount = 0;
   std::uint64_t dispatchCount = 0;
 
-  for (std::uint64_t i = 0; i < 400000; i++) {
+  std::uint64_t maxCycles = kDefaultMaxCycles;
+  if (const char *env = std::getenv("PYC_MAX_CYCLES")) {
+    maxCycles = static_cast<std::uint64_t>(std::stoull(env, nullptr, 0));
+  }
+  std::optional<std::uint64_t> expectedExitPc{};
+  if (const char *env = std::getenv("PYC_EXPECT_EXIT_PC")) {
+    expectedExitPc = static_cast<std::uint64_t>(std::stoull(env, nullptr, 0));
+  }
+  std::uint64_t exitPcStable = 0;
+
+  bool done = false;
+  for (std::uint64_t i = 0; i < maxCycles; i++) {
+    if (dut.mmio_uart_valid.toBool() && !dut.halted.toBool()) {
+      const char ch = static_cast<char>(dut.mmio_uart_data.value() & 0xFFu);
+      std::cout << ch << std::flush;
+    }
     if (trace_verbose && dut.dispatch_fire.toBool() && !dut.halted.toBool()) {
       dispatchCount++;
       tb.log() << "[disp #" << std::dec << dispatchCount << "] fpc=0x" << std::hex << dut.fpc.value() << " dec_op=" << std::dec << dut.dec_op.value()
@@ -144,12 +169,27 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
                << " sp=0x" << dut.sp.value() << std::dec << " rob_count=" << dut.rob_count.value() << "\n";
     }
     tb.runCycles(1);
-    if (dut.halted.toBool())
+    if (dut.halted.toBool()) {
+      done = true;
       break;
+    }
+    if (expectedExitPc.has_value() && dut.pc.value() == *expectedExitPc && dut.fpc.value() == *expectedExitPc) {
+      exitPcStable++;
+      if (exitPcStable >= kExitPcStableCycles) {
+        done = true;
+        break;
+      }
+    } else {
+      exitPcStable = 0;
+    }
   }
-  if (!dut.halted.toBool()) {
+  if (!done) {
     std::cerr << "FAIL " << name << ": did not halt (pc=0x" << std::hex << dut.pc.value() << " fpc=0x" << dut.fpc.value() << ")\n";
     return false;
+  }
+
+  if (dut.mmio_exit_valid.toBool()) {
+    std::cerr << "[janus-exit] code=" << std::dec << dut.mmio_exit_code.value() << "\n";
   }
 
   if (expectedA0.has_value()) {

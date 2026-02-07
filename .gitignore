@@ -213,3 +213,6 @@ __marimo__/
 
 # Verilog tool build outputs
 examples/generated/**/verilator/
+
+# Janus generated outputs (pyc-compile, verilator builds, benchmark artifacts)
+janus/generated/

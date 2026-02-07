@@ -990,6 +990,16 @@ def decode_bundle_8B(m: Circuit, window: Wire) -> DecodeBundle:
     off0 = z4
     v0 = ~len0_4.eq(z4)
 
+    # Template macro blocks (FENTRY/FEXIT/FRET.*) must execute as standalone
+    # blocks at the front-end, so do not include following instructions in the
+    # same fetch bundle.
+    is_macro0 = (
+        dec0.op.eq(OP_FENTRY)
+        | dec0.op.eq(OP_FEXIT)
+        | dec0.op.eq(OP_FRET_RA)
+        | dec0.op.eq(OP_FRET_STK)
+    )
+
     # Slot 1.
     sh0 = len0_4.zext(width=6).shl(amount=3)
     win1 = lshr_var(m, win0, sh0)
@@ -997,7 +1007,7 @@ def decode_bundle_8B(m: Circuit, window: Wire) -> DecodeBundle:
     len1_4 = dec1.len_bytes.zext(width=4)
     off1 = len0_4
     rem0 = b8 - len0_4
-    v1 = v0 & rem0.uge(b2) & (~len1_4.eq(z4)) & len1_4.ule(rem0)
+    v1 = v0 & (~is_macro0) & rem0.uge(b2) & (~len1_4.eq(z4)) & len1_4.ule(rem0)
 
     # Slot 2.
     off2 = off1 + len1_4
