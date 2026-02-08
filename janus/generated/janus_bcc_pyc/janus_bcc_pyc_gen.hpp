@@ -1,4 +1,6 @@
 // pyCircuit C++ emission (prototype)
+#include <cstdlib>
+#include <iostream>
 #include <pyc/cpp/pyc_sim.hpp>
 
 namespace pyc::gen {
@@ -5850,10 +5852,8 @@ struct janus_bcc_pyc {
     commit_tgt = state__commit_tgt;
   }
 
-  void tick() {
-    // Two-phase update: compute next state for all sequential elements,
-    // then commit together. This avoids ordering artifacts between regs.
-    // Phase 1: compute.
+  void tick_compute() {
+    // Local sequential primitives.
     pyc_reg_698_inst.tick_compute();
     pyc_reg_699_inst.tick_compute();
     pyc_reg_700_inst.tick_compute();
@@ -5919,7 +5919,10 @@ struct janus_bcc_pyc {
     pyc_reg_765_inst.tick_compute();
     pyc_reg_766_inst.tick_compute();
     mem.tick_compute();
-    // Phase 2: commit.
+  }
+
+  void tick_commit() {
+    // Local sequential primitives.
     pyc_reg_698_inst.tick_commit();
     pyc_reg_699_inst.tick_commit();
     pyc_reg_700_inst.tick_commit();
@@ -5985,6 +5988,11 @@ struct janus_bcc_pyc {
     pyc_reg_765_inst.tick_commit();
     pyc_reg_766_inst.tick_commit();
     mem.tick_commit();
+  }
+
+  void tick() {
+    tick_compute();
+    tick_commit();
   }
 };
 

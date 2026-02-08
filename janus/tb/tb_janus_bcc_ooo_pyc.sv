@@ -40,6 +40,10 @@ module tb_janus_bcc_ooo_pyc;
   logic [63:0] commit_pc1;
   logic [63:0] commit_pc2;
   logic [63:0] commit_pc3;
+  logic [3:0] commit_rob0;
+  logic [3:0] commit_rob1;
+  logic [3:0] commit_rob2;
+  logic [3:0] commit_rob3;
   logic [11:0] commit_op0;
   logic [11:0] commit_op1;
   logic [11:0] commit_op2;
@@ -58,6 +62,22 @@ module tb_janus_bcc_ooo_pyc;
   logic [11:0] issue_op;
   logic [63:0] issue_pc;
   logic [3:0] issue_rob;
+  logic issue_fire0;
+  logic issue_fire1;
+  logic issue_fire2;
+  logic issue_fire3;
+  logic [63:0] issue_pc0;
+  logic [63:0] issue_pc1;
+  logic [63:0] issue_pc2;
+  logic [63:0] issue_pc3;
+  logic [3:0] issue_rob0;
+  logic [3:0] issue_rob1;
+  logic [3:0] issue_rob2;
+  logic [3:0] issue_rob3;
+  logic [11:0] issue_op0;
+  logic [11:0] issue_op1;
+  logic [11:0] issue_op2;
+  logic [11:0] issue_op3;
   logic [5:0] issue_sl;
   logic [5:0] issue_sr;
   logic [5:0] issue_sp;
@@ -72,6 +92,22 @@ module tb_janus_bcc_ooo_pyc;
   logic [63:0] mem_raddr;
   logic dispatch_fire;
   logic [11:0] dec_op;
+  logic dispatch_fire0;
+  logic dispatch_fire1;
+  logic dispatch_fire2;
+  logic dispatch_fire3;
+  logic [63:0] dispatch_pc0;
+  logic [63:0] dispatch_pc1;
+  logic [63:0] dispatch_pc2;
+  logic [63:0] dispatch_pc3;
+  logic [3:0] dispatch_rob0;
+  logic [3:0] dispatch_rob1;
+  logic [3:0] dispatch_rob2;
+  logic [3:0] dispatch_rob3;
+  logic [11:0] dispatch_op0;
+  logic [11:0] dispatch_op1;
+  logic [11:0] dispatch_op2;
+  logic [11:0] dispatch_op3;
 
   logic mmio_uart_valid;
   logic [7:0] mmio_uart_data;
@@ -108,18 +144,22 @@ module tb_janus_bcc_ooo_pyc;
       .commit_store_size(commit_store_size),
       .commit_fire0(commit_fire0),
       .commit_pc0(commit_pc0),
+      .commit_rob0(commit_rob0),
       .commit_op0(commit_op0),
       .commit_value0(commit_value0),
       .commit_fire1(commit_fire1),
       .commit_pc1(commit_pc1),
+      .commit_rob1(commit_rob1),
       .commit_op1(commit_op1),
       .commit_value1(commit_value1),
       .commit_fire2(commit_fire2),
       .commit_pc2(commit_pc2),
+      .commit_rob2(commit_rob2),
       .commit_op2(commit_op2),
       .commit_value2(commit_value2),
       .commit_fire3(commit_fire3),
       .commit_pc3(commit_pc3),
+      .commit_rob3(commit_rob3),
       .commit_op3(commit_op3),
       .commit_value3(commit_value3),
       .rob_count(rob_count),
@@ -131,6 +171,22 @@ module tb_janus_bcc_ooo_pyc;
       .issue_op(issue_op),
       .issue_pc(issue_pc),
       .issue_rob(issue_rob),
+      .issue_fire0(issue_fire0),
+      .issue_pc0(issue_pc0),
+      .issue_rob0(issue_rob0),
+      .issue_op0(issue_op0),
+      .issue_fire1(issue_fire1),
+      .issue_pc1(issue_pc1),
+      .issue_rob1(issue_rob1),
+      .issue_op1(issue_op1),
+      .issue_fire2(issue_fire2),
+      .issue_pc2(issue_pc2),
+      .issue_rob2(issue_rob2),
+      .issue_op2(issue_op2),
+      .issue_fire3(issue_fire3),
+      .issue_pc3(issue_pc3),
+      .issue_rob3(issue_rob3),
+      .issue_op3(issue_op3),
       .issue_sl(issue_sl),
       .issue_sr(issue_sr),
       .issue_sp(issue_sp),
@@ -145,6 +201,22 @@ module tb_janus_bcc_ooo_pyc;
       .mem_raddr(mem_raddr),
       .dispatch_fire(dispatch_fire),
       .dec_op(dec_op),
+      .dispatch_fire0(dispatch_fire0),
+      .dispatch_pc0(dispatch_pc0),
+      .dispatch_rob0(dispatch_rob0),
+      .dispatch_op0(dispatch_op0),
+      .dispatch_fire1(dispatch_fire1),
+      .dispatch_pc1(dispatch_pc1),
+      .dispatch_rob1(dispatch_rob1),
+      .dispatch_op1(dispatch_op1),
+      .dispatch_fire2(dispatch_fire2),
+      .dispatch_pc2(dispatch_pc2),
+      .dispatch_rob2(dispatch_rob2),
+      .dispatch_op2(dispatch_op2),
+      .dispatch_fire3(dispatch_fire3),
+      .dispatch_pc3(dispatch_pc3),
+      .dispatch_rob3(dispatch_rob3),
+      .dispatch_op3(dispatch_op3),
       .mmio_uart_valid(mmio_uart_valid),
       .mmio_uart_data(mmio_uart_data),
       .mmio_exit_valid(mmio_exit_valid),
@@ -162,6 +234,13 @@ module tb_janus_bcc_ooo_pyc;
   string log_path;
   int log_fd;
   bit log_commits;
+  string konata_path;
+  int konata_fd;
+  bit konata_on;
+  longint unsigned konata_cur_cycle;
+  longint unsigned konata_next_id;
+  longint unsigned konata_id_by_rob[int];
+  bit konata_stage_by_rob[int];
 
   longint unsigned max_cycles;
   longint unsigned expected_mem100;
@@ -175,6 +254,99 @@ module tb_janus_bcc_ooo_pyc;
   int unsigned exit_pc_stable_cycles;
   int unsigned exit_pc_stable;
   bit done;
+
+  task automatic konata_at_cycle(input longint unsigned cyc);
+    if (!konata_on)
+      return;
+    if (cyc < konata_cur_cycle)
+      return;
+    if (cyc == konata_cur_cycle)
+      return;
+    $fdisplay(konata_fd, "C\t%0d", (cyc - konata_cur_cycle));
+    konata_cur_cycle = cyc;
+  endtask
+
+  task automatic konata_insn(input longint unsigned file_id, input longint unsigned sim_id, input longint unsigned thread_id);
+    if (konata_on)
+      $fdisplay(konata_fd, "I\t%0d\t%0d\t%0d", file_id, sim_id, thread_id);
+  endtask
+
+  task automatic konata_label(input longint unsigned id, input int kind, input string msg);
+    if (konata_on)
+      $fdisplay(konata_fd, "L\t%0d\t%0d\t%s", id, kind, msg);
+  endtask
+
+  task automatic konata_stage_start(input longint unsigned id, input int lane, input string stage);
+    if (konata_on)
+      $fdisplay(konata_fd, "S\t%0d\t%0d\t%s", id, lane, stage);
+  endtask
+
+  task automatic konata_stage_end(input longint unsigned id, input int lane, input string stage);
+    if (konata_on)
+      $fdisplay(konata_fd, "E\t%0d\t%0d\t%s", id, lane, stage);
+  endtask
+
+  task automatic konata_retire(input longint unsigned id, input longint unsigned retire_id, input int kind);
+    if (konata_on)
+      $fdisplay(konata_fd, "R\t%0d\t%0d\t%0d", id, retire_id, kind);
+  endtask
+
+  task automatic pv_squash(input int rob);
+    if (!konata_on)
+      return;
+    if (!konata_id_by_rob.exists(rob))
+      return;
+    longint unsigned id = konata_id_by_rob[rob];
+    if (konata_stage_by_rob[rob] == 0)
+      konata_stage_end(id, 0, "IQ");
+    else
+      konata_stage_end(id, 0, "ROB");
+    konata_retire(id, id, 1);
+    konata_label(id, 1, "squash");
+    konata_id_by_rob.delete(rob);
+    konata_stage_by_rob.delete(rob);
+  endtask
+
+  task automatic pv_dispatch(input int slot, input int rob, input logic [63:0] pc, input logic [11:0] op);
+    pv_squash(rob);
+    longint unsigned id = konata_next_id;
+    konata_next_id++;
+    konata_id_by_rob[rob] = id;
+    konata_stage_by_rob[rob] = 0;
+    konata_insn(pc, id, 0);
+    konata_label(id, 0, $sformatf("pc=0x%016x op=%0d rob=%0d disp_slot=%0d", pc, op, rob, slot));
+    konata_stage_start(id, 0, "IQ");
+  endtask
+
+  task automatic pv_issue(input int slot, input int rob, input logic [63:0] pc, input logic [11:0] op);
+    if (!konata_on)
+      return;
+    if (!konata_id_by_rob.exists(rob))
+      return;
+    if (konata_stage_by_rob[rob] != 0)
+      return;
+    longint unsigned id = konata_id_by_rob[rob];
+    konata_stage_end(id, 0, "IQ");
+    konata_stage_start(id, 0, "ROB");
+    konata_stage_by_rob[rob] = 1;
+    konata_label(id, 1, $sformatf("issue pc=0x%016x op=%0d slot=%0d", pc, op, slot));
+  endtask
+
+  task automatic pv_commit(input int slot, input int rob, input logic [63:0] pc, input logic [11:0] op);
+    if (!konata_on)
+      return;
+    if (!konata_id_by_rob.exists(rob))
+      return;
+    longint unsigned id = konata_id_by_rob[rob];
+    if (konata_stage_by_rob[rob] == 0)
+      konata_stage_end(id, 0, "IQ");
+    else
+      konata_stage_end(id, 0, "ROB");
+    konata_retire(id, id, 0);
+    konata_label(id, 1, $sformatf("commit pc=0x%016x op=%0d slot=%0d", pc, op, slot));
+    konata_id_by_rob.delete(rob);
+    konata_stage_by_rob.delete(rob);
+  endtask
 
   initial begin
     clk = 1'b0;
@@ -202,9 +374,21 @@ module tb_janus_bcc_ooo_pyc;
 
     vcd_path = "janus/generated/janus_bcc_ooo_pyc/tb_janus_bcc_ooo_pyc_sv.vcd";
     log_path = "janus/generated/janus_bcc_ooo_pyc/tb_janus_bcc_ooo_pyc_sv.log";
+    konata_path = "janus/generated/janus_bcc_ooo_pyc/tb_janus_bcc_ooo_pyc_sv.kanata";
     void'($value$plusargs("vcd=%s", vcd_path));
     void'($value$plusargs("log=%s", log_path));
+    void'($value$plusargs("konata=%s", konata_path));
     log_commits = $test$plusargs("logcommits");
+    konata_on = !$test$plusargs("nokonata");
+    konata_fd = 0;
+    konata_next_id = 1;
+    if (konata_on) begin
+      konata_fd = $fopen(konata_path, "w");
+      if (konata_fd == 0) begin
+        $display("WARN: failed to open Konata log: %s", konata_path);
+        konata_on = 0;
+      end
+    end
 
     if (!$test$plusargs("notrace")) begin
       $display("tb_janus_bcc_ooo_pyc: dumping VCD to %s", vcd_path);
@@ -234,9 +418,30 @@ module tb_janus_bcc_ooo_pyc;
     repeat (5) @(posedge clk);
     rst = 1'b0;
 
+    if (konata_on) begin
+      $fdisplay(konata_fd, "Kanata\t0004");
+      $fdisplay(konata_fd, "C=\t%0d", cycles);
+      konata_cur_cycle = cycles;
+    end
+
     i = 0;
     while (i < max_cycles && !halted && !done) begin
       @(posedge clk);
+      if (konata_on) begin
+        konata_at_cycle(cycles);
+        if (dispatch_fire0) pv_dispatch(0, dispatch_rob0, dispatch_pc0, dispatch_op0);
+        if (dispatch_fire1) pv_dispatch(1, dispatch_rob1, dispatch_pc1, dispatch_op1);
+        if (dispatch_fire2) pv_dispatch(2, dispatch_rob2, dispatch_pc2, dispatch_op2);
+        if (dispatch_fire3) pv_dispatch(3, dispatch_rob3, dispatch_pc3, dispatch_op3);
+        if (issue_fire0) pv_issue(0, issue_rob0, issue_pc0, issue_op0);
+        if (issue_fire1) pv_issue(1, issue_rob1, issue_pc1, issue_op1);
+        if (issue_fire2) pv_issue(2, issue_rob2, issue_pc2, issue_op2);
+        if (issue_fire3) pv_issue(3, issue_rob3, issue_pc3, issue_op3);
+        if (commit_fire0) pv_commit(0, commit_rob0, commit_pc0, commit_op0);
+        if (commit_fire1) pv_commit(1, commit_rob1, commit_pc1, commit_op1);
+        if (commit_fire2) pv_commit(2, commit_rob2, commit_pc2, commit_op2);
+        if (commit_fire3) pv_commit(3, commit_rob3, commit_pc3, commit_op3);
+      end
       if (mmio_uart_valid) begin
         $write("%c", mmio_uart_data);
       end
@@ -423,6 +628,10 @@ module tb_janus_bcc_ooo_pyc;
     if (log_fd != 0) begin
       $fdisplay(log_fd, "PASS: cycles=%0d pc=0x%016x fpc=0x%016x a0=0x%016x mem100=0x%08x", cycles, pc, fpc, a0, got_mem100);
       $fclose(log_fd);
+    end
+
+    if (konata_fd != 0) begin
+      $fclose(konata_fd);
     end
 
     $display("PASS: cycles=%0d pc=0x%016x a0=0x%016x mem[0x100]=0x%08x", cycles, pc, a0, got_mem100);

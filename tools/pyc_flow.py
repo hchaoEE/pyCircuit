@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import shutil
@@ -222,6 +223,85 @@ def cmd_verilog_sim(args: argparse.Namespace) -> int:
         run(cmd, cwd=ROOT)
 
         exe = build_dir / f"V{sim.top}"
+        if not exe.is_file():
+            die(f"verilator did not produce expected binary: {exe}")
+        run([str(exe), *args.sim_args], cwd=ROOT)
+        return 0
+
+    die(f"unknown --tool: {tool} (expected: iverilog or verilator)")
+
+def cmd_verilog_sim_manifest(args: argparse.Namespace) -> int:
+    manifest_path = Path(args.manifest)
+    if not manifest_path.is_file():
+        die(f"missing manifest: {manifest_path}")
+    out_dir = manifest_path.parent
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        die(f"failed to parse manifest.json: {e}")
+
+    mods = manifest.get("verilog_modules")
+    if not isinstance(mods, list) or not all(isinstance(x, str) for x in mods):
+        die("manifest.json missing verilog_modules: expected list[str]")
+
+    tb_path = Path(args.tb)
+    if not tb_path.is_file():
+        die(f"missing tb file: {tb_path}")
+
+    include_dirs = [Path(p) for p in (args.include_dir or [])]
+    include_dirs.append(out_dir)
+
+    sources = [tb_path, *[out_dir / m for m in mods]]
+    for s in sources:
+        if not s.is_file():
+            die(f"missing source referenced by manifest: {s}")
+
+    top = args.top
+    if not top:
+        top_sym = manifest.get("top")
+        top = f"tb_{top_sym}" if isinstance(top_sym, str) and top_sym else "tb"
+
+    tool = args.tool
+    if tool == "iverilog":
+        iverilog = which("iverilog") or die("missing iverilog (install with: brew install icarus-verilog)")
+        vvp = which("vvp") or die("missing vvp (install with: brew install icarus-verilog)")
+
+        out_vvp = out_dir / f"{top}.vvp"
+        cmd = [iverilog, "-g2012"]
+        for inc in include_dirs:
+            cmd += ["-I", str(inc)]
+        cmd += ["-o", str(out_vvp)]
+        cmd += [str(s) for s in sources]
+        run(cmd, cwd=ROOT)
+        run([vvp, str(out_vvp), *args.sim_args], cwd=ROOT)
+        return 0
+
+    if tool == "verilator":
+        verilator = which("verilator") or die("missing verilator (install with: brew install verilator)")
+        build_dir = out_dir / "verilator"
+        build_dir.mkdir(parents=True, exist_ok=True)
+
+        cmd = [
+            verilator,
+            "--binary",
+            "-Wall",
+            "-Wno-fatal",
+            "--quiet",
+            "--quiet-build",
+            "--timing",
+            "--trace",
+            "--top-module",
+            top,
+            "--Mdir",
+            str(build_dir),
+        ]
+        for inc in include_dirs:
+            cmd += ["-I" + str(inc)]
+        cmd += [str(s) for s in sources]
+        run(cmd, cwd=ROOT)
+
+        exe = build_dir / f"V{top}"
         if not exe.is_file():
             die(f"verilator did not produce expected binary: {exe}")
         run([str(exe), *args.sim_args], cwd=ROOT)
@@ -588,6 +668,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     vsim.add_argument("--tool", choices=["iverilog", "verilator"], default="iverilog")
     vsim.add_argument("sim_args", nargs="*", help="Arguments passed to the simulator (e.g. +vcd=...)")
     vsim.set_defaults(fn=cmd_verilog_sim)
+
+    vsimm = sub.add_parser("verilog-sim-manifest", help="Simulate Verilog using a manifest.json from --out-dir emission.")
+    vsimm.add_argument("--manifest", required=True, help="Path to out-dir manifest.json")
+    vsimm.add_argument("--tb", required=True, help="Path to SystemVerilog testbench (.sv)")
+    vsimm.add_argument("--top", default=None, help="Top module name (default: tb_<top> from manifest)")
+    vsimm.add_argument("--tool", choices=["iverilog", "verilator"], default="iverilog")
+    vsimm.add_argument("--include-dir", action="append", default=[], help="Extra include directory (repeatable)")
+    vsimm.add_argument("sim_args", nargs="*", help="Arguments passed to the simulator (e.g. +vcd=...)")
+    vsimm.set_defaults(fn=cmd_verilog_sim_manifest)
 
     vlint = sub.add_parser("verilog-lint", help="Lint generated Verilog with Verilator.")
     vlint.add_argument("design", choices=sorted(verilog_sims().keys()))

@@ -1718,15 +1718,18 @@ def build_bcc_ooo(m: Circuit, *, mem_bytes: int, params: OooParams | None = None
     for slot in range(max_commit_slots):
         fire = consts.zero1
         pc = consts.zero64
+        rob = c(0, width=p.rob_w)
         op = c(0, width=12)
         val = consts.zero64
         if slot < p.commit_w:
             fire = commit_fires[slot]
             pc = commit_pcs[slot]
+            rob = commit_idxs[slot]
             op = rob_ops[slot]
             val = rob_values[slot]
         m.output(f"commit_fire{slot}", fire)
         m.output(f"commit_pc{slot}", pc)
+        m.output(f"commit_rob{slot}", rob)
         m.output(f"commit_op{slot}", op)
         m.output(f"commit_value{slot}", val)
     m.output("rob_count", rob.count)
@@ -1760,6 +1763,40 @@ def build_bcc_ooo(m: Circuit, *, mem_bytes: int, params: OooParams | None = None
     m.output("mem_raddr", mem_raddr)
     m.output("dispatch_fire", dispatch_fire)
     m.output("dec_op", dec_op)
+
+    # Dispatch slot visibility (trace hook): per-slot PC/op/ROB for pipeview tools.
+    max_disp_slots = 4
+    for slot in range(max_disp_slots):
+        fire = consts.zero1
+        pc = consts.zero64
+        rob_i = c(0, width=p.rob_w)
+        op = c(0, width=12)
+        if slot < p.dispatch_w:
+            fire = disp_fires[slot]
+            pc = disp_pcs[slot]
+            rob_i = disp_rob_idxs[slot]
+            op = disp_ops[slot]
+        m.output(f"dispatch_fire{slot}", fire)
+        m.output(f"dispatch_pc{slot}", pc)
+        m.output(f"dispatch_rob{slot}", rob_i)
+        m.output(f"dispatch_op{slot}", op)
+
+    # Issue slot visibility (trace hook): per-slot PC/op/ROB for pipeview tools.
+    max_issue_slots = 4
+    for slot in range(max_issue_slots):
+        fire = consts.zero1
+        pc = consts.zero64
+        rob_i = c(0, width=p.rob_w)
+        op = c(0, width=12)
+        if slot < p.issue_w:
+            fire = issue_fires[slot]
+            pc = uop_pcs[slot]
+            rob_i = uop_robs[slot]
+            op = uop_ops[slot]
+        m.output(f"issue_fire{slot}", fire)
+        m.output(f"issue_pc{slot}", pc)
+        m.output(f"issue_rob{slot}", rob_i)
+        m.output(f"issue_op{slot}", op)
 
     # MMIO visibility for testbenches (UART + exit).
     m.output("mmio_uart_valid", mmio_uart)

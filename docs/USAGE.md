@@ -76,6 +76,108 @@ with m.scope("EX"):
 - `.set(v, when=cond)` drives the backedge “next” wire (`d`).
 - `with m.scope("NAME"):` prefixes debug names for easier traceability.
 
+### 2.3 Hierarchy: `m.instance(...)` (multi-module designs)
+
+For large projects (SoCs, many cores), pyCircuit supports explicit module
+instantiation while preserving module boundaries through codegen.
+
+`pycircuit.cli emit` compiles a design into a single MLIR `module { ... }` that
+may contain **multiple** `func.func` hardware modules. Use `Circuit.instance`
+to instantiate submodules:
+
+```python
+from pycircuit import Circuit, module
+
+@module(name="Core")
+def core(m: Circuit, *, WIDTH: int = 32) -> None:
+    clk = m.clock("clk")
+    rst = m.reset("rst")
+    x = m.input("x", width=WIDTH)
+    m.output("y", x + 1)
+
+def build(m: Circuit) -> None:
+    clk = m.clock("clk")
+    rst = m.reset("rst")
+    x = m.input("x", width=32)
+
+    u0 = m.instance(core, name="core0", params={"WIDTH": 32}, clk=clk, rst=rst, x=x)
+    m.output("y", u0["y"])
+```
+
+Key rules:
+
+- `name=` is the **instance name** used in generated Verilog/C++.
+- `params=` are **compile-time** specialization parameters (must be deterministic:
+  `bool/int/str` and tuples/lists/dicts thereof).
+- Port connections are **by port name**; missing/extra ports are hard errors.
+- The output of `m.instance(...)` is a `Bundle` keyed by the callee’s output port names.
+
+To scale builds, `pyc-compile` also supports split emission:
+
+```bash
+pyc-compile design.pyc --emit=verilog --out-dir out/
+pyc-compile design.pyc --emit=cpp --out-dir out/
+```
+
+This writes one file per module plus an `out/manifest.json`.
+
+FPGA-first Verilog emission enables inference-friendly attributes in primitives:
+
+```bash
+pyc-compile design.pyc --emit=verilog --target=fpga -o out.v
+```
+
+### 2.4 Assertions (simulation-only)
+
+In JIT-compiled design code, Python `assert` is supported and lowers to a
+simulation-only `pyc.assert` op:
+
+```python
+assert in_ready, "in_ready must be high"
+```
+
+Notes:
+
+- The assertion condition must be an `i1` `Wire`.
+- Assertions are emitted under `ifndef SYNTHESIS` in Verilog, and as runtime
+  checks in the C++ model.
+- In non-JIT (elaboration) designs, use `m.assert_(cond, msg="...")` instead of
+  Python `assert`, since `Wire` cannot be used as a Python boolean.
+
+### 2.5 Testbench generation: `pycircuit testgen` (C++ + SV/SVA)
+
+A single Python file can define both the design and a small cycle-based
+testbench:
+
+```python
+from pycircuit import Circuit, Tb, sva
+
+def build(m: Circuit) -> None:
+    ...
+
+def tb(t: Tb) -> None:
+    t.clock("clk")
+    t.reset("rst")
+    t.random("in_data", seed=1)
+    t.drive("in_valid", True, at=0)
+    t.expect("out_valid", True, at=3)
+    t.sva_assert(sva.rose("in_valid"), clock="clk", reset="rst", name="in_valid_rose")
+    t.finish(at=10)
+```
+
+Generate split RTL plus C++/SystemVerilog testbenches:
+
+```bash
+PYTHONPATH=python python3 -m pycircuit.cli testgen path/to/design.py --out-dir out/
+```
+
+This emits:
+
+- `out/*.v` (+ `out/pyc_primitives.v`) and `out/manifest.json`
+- `out/*.hpp`
+- `out/tb_<Top>.cpp`
+- `out/tb_<Top>.sv` (includes SVA assertions)
+
 ---
 
 ## 3) Types, widths, and “inference”

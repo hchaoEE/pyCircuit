@@ -1097,6 +1097,33 @@ def build(
     m.output("sp", rf.gpr[1])
     m.output("br_kind", state.br_kind)
     # Debug/trace hooks (stable, optional consumers).
+    #
+    # These signals are intentionally redundant with internal stage registers
+    # (and with some existing `wb*` outputs) so external tooling can build
+    # pipeline views without relying on internal name mangling.
+    #
+    # Stage naming convention for viewers (recommended):
+    # - IF  : if*_valid/if*_pc
+    # - ID  : ifid*_valid/ifid*_pc
+    # - EX  : idex*_valid/idex*_pc
+    # - MEM : exmem*_valid/exmem*_pc
+    # - WB  : wb*_valid/wb*_pc
+    m.output("if0_valid", do_if & (~stop))
+    m.output("if0_pc", fetch_pc)
+    m.output("if1_valid", do_if1 & (~stop))
+    m.output("if1_pc", fetch_pc + len0.zext(width=64))
+    m.output("ifid0_valid", pipe_ifid0.valid)
+    m.output("ifid0_pc", pipe_ifid0.pc)
+    m.output("ifid1_valid", pipe_ifid1.valid)
+    m.output("ifid1_pc", pipe_ifid1.pc)
+    m.output("idex0_valid", pipe_idex0.valid)
+    m.output("idex0_pc", pipe_idex0.pc)
+    m.output("idex1_valid", pipe_idex1.valid)
+    m.output("idex1_pc", pipe_idex1.pc)
+    m.output("exmem0_valid", pipe_exmem0.valid)
+    m.output("exmem0_pc", pipe_exmem0.pc)
+    m.output("exmem1_valid", pipe_exmem1.valid)
+    m.output("exmem1_pc", pipe_exmem1.pc)
     m.output("wb0_valid", pipe_memwb0.valid)
     m.output("wb1_valid", pipe_memwb1.valid)
     m.output("wb0_pc", pipe_memwb0.pc)

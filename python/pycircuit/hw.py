@@ -466,9 +466,11 @@ class Reg:
 class Circuit(Module):
     """High-level wrapper over `Module` that returns `Wire`/`Reg` objects."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, design_ctx: Any | None = None) -> None:
         super().__init__(name)
         self._scope_stack: list[str] = []
+        # Optional multi-module DesignContext (used by `Circuit.instance`).
+        self._design_ctx = design_ctx
 
     def scoped_name(self, name: str) -> str:
         if not self._scope_stack:
@@ -542,6 +544,11 @@ class Circuit(Module):
             return
 
         raise TypeError(f"assign requires same types, got {dst_sig.ty} and {src_sig.ty}")
+
+    def assert_(self, cond: Union[Wire, Reg, Signal], *, msg: str | None = None) -> None:
+        c = cond.q if isinstance(cond, Reg) else cond
+        sig = c.sig if isinstance(c, Wire) else c
+        super().assert_(sig, msg=msg)
 
     def out(
         self,
@@ -641,6 +648,93 @@ class Circuit(Module):
 
     def bundle(self, **fields: Union["Wire", "Reg"]) -> "Bundle":
         return Bundle(fields)
+
+    def instance(
+        self,
+        fn: Any,
+        *,
+        name: str,
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+        **ports: Union["Wire", "Reg", Signal, int],
+    ) -> "Bundle":
+        """Instantiate a specialized sub-module and return its outputs as a Bundle.
+
+        The callee is a Python module function `fn(m: Circuit, ...)` compiled into
+        the current multi-module Design via `jit.compile_design(...)`.
+
+        - `name` is the instance name (used in codegen).
+        - `params` are compile-time specialization parameters for the callee.
+        - Remaining kwargs are port connections by callee port name.
+        """
+
+        if self._design_ctx is None:
+            raise TypeError("Circuit.instance requires a design context (compile via pycircuit.jit.compile_design)")
+
+        from .design import DesignContext, DesignError
+
+        if not isinstance(self._design_ctx, DesignContext):
+            raise TypeError("internal error: Circuit design context has an unexpected type")
+
+        cm = self._design_ctx.specialize(fn, params=dict(params or {}), module_name=module_name)
+
+        expected = set(cm.arg_names)
+        provided = set(ports.keys())
+        missing = sorted(expected - provided)
+        extra = sorted(provided - expected)
+        if missing or extra:
+            parts: list[str] = []
+            if missing:
+                parts.append("missing: " + ", ".join(missing))
+            if extra:
+                parts.append("extra: " + ", ".join(extra))
+            raise DesignError(f"instance port mismatch for {cm.sym_name!r} ({'; '.join(parts)})")
+
+        def coerce_to_sig(v: Union[Wire, Reg, Signal, int], *, expected_ty: str, port: str) -> Signal:
+            if isinstance(v, Reg):
+                v = v.q
+            if isinstance(v, Wire):
+                if v.m is not self:
+                    raise DesignError(f"instance port {port!r}: cannot connect a wire from a different module")
+                sig = v.sig
+            elif isinstance(v, Signal):
+                sig = v
+            elif isinstance(v, int):
+                if expected_ty == "!pyc.clock" or expected_ty == "!pyc.reset":
+                    raise DesignError(f"instance port {port!r}: clock/reset ports cannot be driven by integers")
+                if not expected_ty.startswith("i"):
+                    raise DesignError(f"instance port {port!r}: expected {expected_ty}, got int")
+                width = int(expected_ty[1:])
+                sig = self.const(int(v), width=width).sig
+            else:
+                raise DesignError(f"instance port {port!r}: unsupported value type {type(v).__name__}")
+
+            if sig.ty == expected_ty:
+                return sig
+
+            # Convenience: allow implicit integer resizing (zext/trunc) like `Circuit.assign`.
+            if sig.ty.startswith("i") and expected_ty.startswith("i"):
+                got_w = _int_width(sig.ty)
+                exp_w = _int_width(expected_ty)
+                w = Wire(self, sig)
+                if got_w < exp_w:
+                    return (self.sext(w.sig, width=exp_w) if w.signed else self.zext(w.sig, width=exp_w))
+                if got_w > exp_w:
+                    return self.trunc(w.sig, width=exp_w)
+                return sig
+
+            raise DesignError(f"instance port {port!r}: type mismatch, got {sig.ty} expected {expected_ty}")
+
+        # Build operands in callee signature order.
+        operands: list[Signal] = []
+        for pname, pty in zip(cm.arg_names, cm.arg_types):
+            operands.append(coerce_to_sig(ports[pname], expected_ty=pty, port=pname))
+
+        outs = self.instance_op(cm.sym_name, *operands, result_types=list(cm.result_types), name=str(name))
+        out_fields: dict[str, Union[Wire, Reg]] = {}
+        for oname, sig in zip(cm.result_names, outs):
+            out_fields[oname] = Wire(self, sig)
+        return Bundle(out_fields)
 
     def byte_mem(
         self,
@@ -962,7 +1056,7 @@ class Bundle:
 
     def __post_init__(self) -> None:
         if not self.fields:
-            raise ValueError("Bundle cannot be empty")
+            return
         # Ensure all elements come from the same Module.
         vals = list(self.fields.values())
         m0 = Vec._module_of(vals[0])
@@ -978,11 +1072,15 @@ class Bundle:
         return self.fields.items()
 
     def pack(self) -> Wire:
+        if not self.fields:
+            raise ValueError("cannot pack an empty Bundle")
         elems = tuple(self.fields.values())
         return Vec(elems).pack()
 
     def unpack(self, packed: Wire) -> "Bundle":
         """Extract fields from a packed bus (inverse of pack())."""
+        if not self.fields:
+            raise ValueError("cannot unpack into an empty Bundle")
         elems = tuple(self.fields.values())
         vec = Vec(elems)
         parts = vec.unpack(packed)
