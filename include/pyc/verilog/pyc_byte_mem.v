@@ -6,7 +6,10 @@
 module pyc_byte_mem #(
   parameter ADDR_WIDTH = 64,
   parameter DATA_WIDTH = 64,
-  parameter DEPTH = 1024
+  parameter DEPTH = 1024,
+  // Optional init file (Vivado: can be used for BRAM init; simulation: $readmemh).
+  // If the file cannot be opened, initialization is skipped.
+  parameter INIT_MEMH = ""
 ) (
   input                   clk,
   input                   rst,
@@ -23,6 +26,18 @@ module pyc_byte_mem #(
 
   // Byte storage.
   reg [7:0] mem [0:DEPTH-1];
+
+  // Optional initialization.
+  integer init_fd;
+  initial begin
+    if (INIT_MEMH != "") begin
+      init_fd = $fopen(INIT_MEMH, "r");
+      if (init_fd != 0) begin
+        $fclose(init_fd);
+        $readmemh(INIT_MEMH, mem);
+      end
+    end
+  end
 
   // Combinational read: assemble DATA_WIDTH bits from successive bytes.
   integer i;

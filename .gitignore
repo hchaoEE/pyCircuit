@@ -56,6 +56,12 @@ cover/
 *.mo
 *.pot
 
+# Vivado (repo root invocations)
+vivado*.log
+vivado*.jou
+dfx_runtime.txt
+.Xil/
+
 # Django stuff:
 *.log
 *.vcd
