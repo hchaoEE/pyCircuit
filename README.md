@@ -14,6 +14,8 @@ Docs:
 - `docs/IR_SPEC.md` (PYC dialect contract)
 - `docs/PRIMITIVES.md` (backend template “ABI”: matching C++/Verilog primitives)
 - `docs/VERILOG_FLOW.md` (open-source Verilog sim/lint with Icarus/Verilator/GTKWave)
+- `docs/LINX_WORKSPACE.md` (Windows + Zybo Z7-20 + LinxISA bring-up workspace notes)
+- `docs/WSL_UBUNTU_ON_WINDOWS.md` (install Ubuntu from TUNA mirror + build Linx toolchains in WSL)
 
 ## Design goals (why this repo exists)
 
