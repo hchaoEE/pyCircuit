@@ -54,7 +54,7 @@ LINK_BW_GBPS     = 112      # Gbps per link
 HBM_BW_TBPS      = 4.0      # Tbps HBM per NPU
 PKT_TIME_NS      = PKT_SIZE * 8 / LINK_BW_GBPS  # ~36.6 ns
 HBM_INJECT_PROB  = min(1.0, HBM_BW_TBPS * 1000 / LINK_BW_GBPS / N_NPUS)
-INJECT_BATCH     = 8
+INJECT_BATCH     = 32     # high injection to stress switch (amplify VOQ collision)
 FIFO_DEPTH       = 64
 VOQ_DEPTH        = 32
 SIM_CYCLES       = 3000
@@ -121,70 +121,97 @@ class SW5809s:
     """SW5809s: 512×512 link crossbar, 128×128 logical port crossbar.
 
     Physical: 512 input links × 512 output links (each 112 Gbps).
-    Logical:  every 4 links are bundled into 1 port → 128 input × 128 output ports.
-    Each logical port is independently arbitrated and can transfer
-    SW_LINKS_PER_PORT (4) packets per cycle (one per physical link).
+    Logical:  every 4 links are bundled into 1 port → 128×128 port crossbar.
+    Each logical port is independently arbitrated: up to
+    SW_LINKS_PER_PORT (4) packets per cycle.
 
-    NPU mapping: each NPU uses SW_PORTS_PER_NPU (8) logical ports.
-      NPU i → input/output ports [i*8 .. i*8+7].
+    NPU mapping: NPU i → ports [i*8 .. i*8+7] (8 ports, 32 links).
 
-    VOQ: per (input_port, dest_port) — 128 × 128 = 16384 queues.
-    Arbiter: each output port independently selects from input VOQs via
-    round-robin (simplified MDRR).
+    Ingress path for a packet from src_npu to dst_npu:
+      1. Pick one of dst_npu's 8 egress ports via ECMP hash/policy
+      2. Enqueue into VOQ[input_port][chosen_egress_port]
+      3. Egress arbiter grants crossbar connection and delivers
 
-    ECMP: packets for NPU j are distributed across j's 8 output ports
-    via round-robin at the input stage.
+    ECMP modes:
+      'independent' : each input port has its own independent RR per dest NPU.
+                      This is the REAL hardware behavior — causes VOQ collision
+                      because uncoordinated RR pointers naturally converge.
+      'coordinated' : a single global RR per dest NPU shared across all input
+                      ports — ideal distribution, no collision (reference).
+
+    VOQ collision: when multiple input ports independently pick the *same*
+    egress port for the same destination NPU, those packets pile up in
+    VOQs targeting that one port while the other 7 ports sit idle.
+    This increases tail latency significantly under high load.
     """
 
-    def __init__(self):
-        self.n_ports = SW_XBAR_PORTS  # 128
+    def __init__(self, ecmp_mode: str = "independent"):
+        self.n_ports = SW_XBAR_PORTS       # 128
         self.ports_per_npu = SW_PORTS_PER_NPU  # 8
-        self.pkts_per_port = SW_LINKS_PER_PORT  # 4 pkt/cycle per logical port
+        self.pkts_per_port = SW_LINKS_PER_PORT  # 4
+        self.ecmp_mode = ecmp_mode
 
-        # VOQ[in_port][out_port] — only allocate for reachable destinations
         self.voqs = [[collections.deque(maxlen=VOQ_DEPTH)
                       for _ in range(self.n_ports)]
                      for _ in range(self.n_ports)]
-        # Round-robin per output port
         self.rr = [0] * self.n_ports
-        # ECMP RR per (input_npu, dest_npu) for distributing across dest ports
-        self.ecmp_rr = [[0] * N_NPUS for _ in range(N_NPUS)]
+
+        # Independent mode: each input port has its own RR pointer per dest NPU
+        # Shape: [n_ports][N_NPUS] — 128 × 16 = 2048 independent counters
+        self.ingress_rr = [[0] * N_NPUS for _ in range(self.n_ports)]
+
+        # Coordinated mode: single global RR per dest NPU (ideal reference)
+        self.global_rr = [0] * N_NPUS
+
+        self.rng = random.Random(123)
+
+        # Statistics
         self.pkts_switched = 0
+        self.pkts_enqueued = 0
+        self.pkts_dropped  = 0     # VOQ full drops
+        self.port_enq_count = [0] * self.n_ports  # per-egress-port enqueue count
 
     def npu_to_ports(self, npu_id):
-        """Return range of logical port indices for a given NPU."""
         base = npu_id * self.ports_per_npu
         return range(base, base + self.ports_per_npu)
 
-    def enqueue(self, src_npu, pkt):
-        """Enqueue packet from src_npu. ECMP across dest NPU's output ports."""
+    def enqueue(self, src_npu, in_port_hint, pkt):
+        """Enqueue packet arriving at a specific input port.
+
+        in_port_hint: the physical input port index (within src NPU's 8 ports).
+        The input port uses its OWN independent RR to pick the egress port.
+        """
         dst_npu = pkt.dst
         if dst_npu == src_npu or dst_npu >= N_NPUS:
             return False
 
-        # Pick input port: round-robin across src NPU's ports
-        src_ports = self.npu_to_ports(src_npu)
-        # Pick output port: ECMP round-robin across dest NPU's ports
-        dst_ports = self.npu_to_ports(dst_npu)
-        ecmp_idx = self.ecmp_rr[src_npu][dst_npu]
-        out_port = dst_ports[ecmp_idx % self.ports_per_npu]
-        self.ecmp_rr[src_npu][dst_npu] = (ecmp_idx + 1) % self.ports_per_npu
+        # Determine actual input port
+        in_port = src_npu * self.ports_per_npu + (in_port_hint % self.ports_per_npu)
+        dst_base = dst_npu * self.ports_per_npu
 
-        # Pick input port with least queuing
-        best_in = min(src_ports, key=lambda p: len(self.voqs[p][out_port]))
-        if len(self.voqs[best_in][out_port]) < VOQ_DEPTH:
-            self.voqs[best_in][out_port].append(pkt)
+        # ECMP: pick one of dst_npu's 8 egress ports
+        if self.ecmp_mode == "independent":
+            # Each input port has its own RR counter per dest NPU
+            idx = self.ingress_rr[in_port][dst_npu]
+            self.ingress_rr[in_port][dst_npu] = (idx + 1) % self.ports_per_npu
+        else:  # coordinated
+            # Global RR shared by ALL input ports → perfect distribution
+            idx = self.global_rr[dst_npu]
+            self.global_rr[dst_npu] = (idx + 1) % self.ports_per_npu
+
+        out_port = dst_base + idx
+
+        if len(self.voqs[in_port][out_port]) < VOQ_DEPTH:
+            self.voqs[in_port][out_port].append(pkt)
+            self.pkts_enqueued += 1
+            self.port_enq_count[out_port] += 1
             return True
+        self.pkts_dropped += 1
         return False
 
     def schedule(self):
-        """Crossbar scheduling: each output port serves up to
-        SW_LINKS_PER_PORT (4) packets per cycle.
-
-        Returns list of (dest_npu, pkt).
-        """
+        """Each output port independently serves up to pkts_per_port packets."""
         delivered = []
-
         for out_port in range(self.n_ports):
             dest_npu = out_port // self.ports_per_npu
             served = 0
@@ -192,8 +219,7 @@ class SW5809s:
                 if served >= self.pkts_per_port:
                     break
                 in_port = (self.rr[out_port] + offset) % self.n_ports
-                in_npu = in_port // self.ports_per_npu
-                if in_npu == dest_npu:
+                if in_port // self.ports_per_npu == dest_npu:
                     continue
                 if self.voqs[in_port][out_port]:
                     pkt = self.voqs[in_port][out_port].popleft()
@@ -202,12 +228,26 @@ class SW5809s:
                     served += 1
             if served > 0:
                 self.rr[out_port] = (self.rr[out_port] + served) % self.n_ports
-
         return delivered
 
     def occupancy(self):
         return sum(len(self.voqs[i][j])
                    for i in range(self.n_ports) for j in range(self.n_ports))
+
+    def port_load_imbalance(self):
+        """Return (min, avg, max) enqueue count across egress ports per NPU."""
+        imbalances = []
+        for npu in range(N_NPUS):
+            ports = self.npu_to_ports(npu)
+            counts = [self.port_enq_count[p] for p in ports]
+            if max(counts) > 0:
+                imbalances.append((min(counts), sum(counts)/len(counts), max(counts)))
+        if not imbalances:
+            return 0, 0, 0
+        mins = [x[0] for x in imbalances]
+        avgs = [x[1] for x in imbalances]
+        maxs = [x[2] for x in imbalances]
+        return sum(mins)/len(mins), sum(avgs)/len(avgs), sum(maxs)/len(maxs)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -250,9 +290,10 @@ class FM16System:
 # SW16 Topology: star through SW5809s
 # ═══════════════════════════════════════════════════════════════════
 class SW16System:
-    def __init__(self):
+    def __init__(self, ecmp_mode="ideal_rr"):
+        self.ecmp_mode = ecmp_mode
         self.npus = [NPUNode(i, N_NPUS) for i in range(N_NPUS)]
-        self.switch = SW5809s()
+        self.switch = SW5809s(ecmp_mode=ecmp_mode)
         self.cycle = 0
         self.rng = random.Random(42)
         self._to_switch: list[tuple[int, int, Packet]] = []  # (arrive, src_npu, pkt)
@@ -263,6 +304,7 @@ class SW16System:
             npu.inject(self.cycle, self.rng)
 
         # NPU → switch: each NPU can push up to SW_LINKS_PER_NPU pkts/cycle
+        # Packets are distributed across the NPU's 8 input ports via RR
         for npu in self.npus:
             sent = 0
             for port in range(N_NPUS):
@@ -270,16 +312,19 @@ class SW16System:
                     pkt = npu.tx(port)
                     if pkt is None: break
                     if pkt.dst == npu.id: continue
-                    self._to_switch.append((self.cycle + SW_LINK_LATENCY, npu.id, pkt))
+                    # Assign to one of src NPU's 8 input ports (RR)
+                    in_port_idx = sent % SW_PORTS_PER_NPU
+                    self._to_switch.append((self.cycle + SW_LINK_LATENCY,
+                                           npu.id, in_port_idx, pkt))
                     sent += 1
 
-        # Deliver to switch
+        # Deliver to switch — each packet arrives at a specific input port
         keep = []
-        for (t, src, pkt) in self._to_switch:
+        for (t, src, port_idx, pkt) in self._to_switch:
             if t <= self.cycle:
-                self.switch.enqueue(src, pkt)
+                self.switch.enqueue(src, port_idx, pkt)
             else:
-                keep.append((t, src, pkt))
+                keep.append((t, src, port_idx, pkt))
         self._to_switch = keep
 
         # Switch crossbar: 128 ports × 4 pkt/port = up to 512 pkt/cycle
@@ -457,11 +502,12 @@ def draw(fm, sw, cycle):
 # Main
 # ═══════════════════════════════════════════════════════════════════
 def main():
-    print(f"  {BOLD}FM16 vs SW16 — Topology Comparison Simulator{RESET}")
-    print(f"  Initializing 2 × 16 NPU systems...")
+    print(f"  {BOLD}FM16 vs SW16 — Topology + ECMP Collision Comparison{RESET}")
+    print(f"  Initializing 3 systems (FM16 + SW16-independent + SW16-coordinated)...")
 
-    fm = FM16System()
-    sw = SW16System()
+    fm  = FM16System()
+    sw_ind  = SW16System(ecmp_mode="independent")   # real hardware: VOQ collision
+    sw_crd  = SW16System(ecmp_mode="coordinated")   # ideal: no collision
 
     print(f"  {GREEN}Systems ready. Running {SIM_CYCLES} cycles...{RESET}")
     time.sleep(0.3)
@@ -469,41 +515,52 @@ def main():
     t0 = time.time()
     for cyc in range(SIM_CYCLES):
         fm.step()
-        sw.step()
+        sw_ind.step()
+        sw_crd.step()
         if (cyc + 1) % DISPLAY_INTERVAL == 0 or cyc == SIM_CYCLES - 1:
-            draw(fm, sw, cyc + 1)
+            draw(fm, sw_ind, cyc + 1)
             elapsed = time.time() - t0
             if elapsed < 0.3:
                 time.sleep(0.03)
     t1 = time.time()
 
-    sf = fm.stats()
-    ss = sw.stats()
+    sf   = fm.stats()
+    si   = sw_ind.stats()
+    sc   = sw_crd.stats()
+    li_min, li_avg, li_max = sw_ind.switch.port_load_imbalance()
+    lc_min, lc_avg, lc_max = sw_crd.switch.port_load_imbalance()
+
     print(f"  {GREEN}{BOLD}Simulation complete!{RESET}  ({t1-t0:.2f}s)")
-    print(f"  {'─'*60}")
-    print(f"  {'':24s} {'FM16':>15s} {'SW16':>15s}")
-    print(f"  {'Per-NPU BW (Gbps)':24s} {sf['per_npu_bw_gbps']:>15.0f} {ss['per_npu_bw_gbps']:>15.0f}")
-    print(f"  {'Aggregate BW (Gbps)':24s} {sf['agg_bw_gbps']:>15.0f} {ss['agg_bw_gbps']:>15.0f}")
-    print(f"  {'Avg Latency (cycles)':24s} {sf['avg']:>15.1f} {ss['avg']:>15.1f}")
-    print(f"  {'P50 Latency':24s} {sf['p50']:>15d} {ss['p50']:>15d}")
-    print(f"  {'P95 Latency':24s} {sf['p95']:>15d} {ss['p95']:>15d}")
-    print(f"  {'P99 Latency':24s} {sf['p99']:>15d} {ss['p99']:>15d}")
-    print(f"  {'Max Latency':24s} {sf['max_lat']:>15d} {ss['max_lat']:>15d}")
-    print(f"  {'Delivered pkts':24s} {sf['del']:>15d} {ss['del']:>15d}")
-    print()
-    fm_cap = FM_LINKS_PER_PAIR * (N_NPUS - 1)  # pkt/cycle per NPU (mesh)
-    sw_out_ports = SW_PORTS_PER_NPU  # output ports per dest NPU in switch
-    sw_per_npu = sw_out_ports * SW_LINKS_PER_PORT  # pkt/cycle to each NPU
-    sw_total = SW_XBAR_PORTS * SW_LINKS_PER_PORT  # total switch pkt/cycle
-    ratio_pct = sw_per_npu / fm_cap * 100
-    print(f"  {YELLOW}Topology analysis:{RESET}")
-    print(f"    FM16 mesh:  {N_NPUS-1} pairs × {FM_LINKS_PER_PAIR} links = {fm_cap} links/NPU")
-    print(f"                → {fm_cap * LINK_BW_GBPS} Gbps per NPU")
-    print(f"    SW5809s:    {SW_XBAR_LINKS}×{SW_XBAR_LINKS} links, {SW_XBAR_PORTS}×{SW_XBAR_PORTS} ports")
-    print(f"                {SW_LINKS_PER_PORT} links/port, {SW_PORTS_PER_NPU} ports/NPU")
-    print(f"                → {sw_per_npu} pkt/cycle to each dest NPU = {sw_per_npu * LINK_BW_GBPS} Gbps")
-    print(f"                Total switch capacity: {sw_total} pkt/cycle = {sw_total * LINK_BW_GBPS} Gbps")
-    print(f"    SW16/FM16 per-NPU capacity ratio: {ratio_pct:.1f}%")
+    print(f"  {'─'*72}")
+    print(f"  {'':24s} {'FM16':>14s} {'SW16-indep':>14s} {'SW16-coord':>14s}")
+    print(f"  {'Per-NPU BW (Gbps)':24s} {sf['per_npu_bw_gbps']:>14.0f} {si['per_npu_bw_gbps']:>14.0f} {sc['per_npu_bw_gbps']:>14.0f}")
+    print(f"  {'Aggregate BW (Gbps)':24s} {sf['agg_bw_gbps']:>14.0f} {si['agg_bw_gbps']:>14.0f} {sc['agg_bw_gbps']:>14.0f}")
+    print(f"  {'Avg Latency (cycles)':24s} {sf['avg']:>14.1f} {si['avg']:>14.1f} {sc['avg']:>14.1f}")
+    print(f"  {'P50 Latency':24s} {sf['p50']:>14d} {si['p50']:>14d} {sc['p50']:>14d}")
+    print(f"  {'P95 Latency':24s} {sf['p95']:>14d} {si['p95']:>14d} {sc['p95']:>14d}")
+    print(f"  {'P99 Latency':24s} {sf['p99']:>14d} {si['p99']:>14d} {sc['p99']:>14d}")
+    print(f"  {'Max Latency':24s} {sf['max_lat']:>14d} {si['max_lat']:>14d} {sc['max_lat']:>14d}")
+    print(f"  {'Delivered pkts':24s} {sf['del']:>14d} {si['del']:>14d} {sc['del']:>14d}")
+    print(f"  {'Dropped pkts':24s} {'N/A':>14s} {si.get('sw_dropped',sw_ind.switch.pkts_dropped):>14d} {sc.get('sw_dropped',sw_crd.switch.pkts_dropped):>14d}")
+    print(f"  {'─'*72}")
+
+    print(f"\n  {YELLOW}ECMP VOQ Collision Analysis:{RESET}")
+    print(f"    Each input port independently round-robins across 8 egress ports.")
+    print(f"    'independent': 128 uncoordinated RR pointers → collisions")
+    print(f"    'coordinated': 1 global RR per dest NPU → no collision (ideal)")
+    print(f"")
+    print(f"    {'Egress port load (per dest NPU)':40s} {'Independent':>14s} {'Coordinated':>14s}")
+    print(f"    {'  Min enqueued':40s} {li_min:>14.0f} {lc_min:>14.0f}")
+    print(f"    {'  Avg enqueued':40s} {li_avg:>14.0f} {lc_avg:>14.0f}")
+    print(f"    {'  Max enqueued':40s} {li_max:>14.0f} {lc_max:>14.0f}")
+    if li_avg > 0:
+        print(f"    {'  Max/Avg ratio (imbalance)':40s} {li_max/li_avg:>14.2f}x {lc_max/lc_avg:>14.2f}x")
+    print(f"")
+    print(f"    VOQ collision causes the {'independent':s} mode to have")
+    if si['p99'] > sc['p99']:
+        print(f"    {RED}higher P99 latency: {si['p99']} vs {sc['p99']} cycles{RESET}")
+    else:
+        print(f"    similar latency (collision effect minimal at this load level)")
     print()
 
 
