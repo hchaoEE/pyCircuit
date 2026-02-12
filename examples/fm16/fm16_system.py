@@ -259,13 +259,16 @@ def _compute_stats(npus, cycle):
     all_lats.sort()
     n = len(all_lats)
     t_ns = cycle * PKT_TIME_NS
+    n_npus = len(npus)
+    agg_bw = total_del * PKT_SIZE * 8 / t_ns if t_ns > 0 else 0
     return {
         "avg": sum(all_lats)/n,
         "p50": all_lats[n//2],
         "p95": all_lats[int(n*0.95)],
         "p99": all_lats[int(n*0.99)],
         "max_lat": all_lats[-1],
-        "bw_gbps": total_del * PKT_SIZE * 8 / t_ns if t_ns > 0 else 0,
+        "agg_bw_gbps": agg_bw,
+        "per_npu_bw_gbps": agg_bw / n_npus if n_npus > 0 else 0,
         "inj": total_inj,
         "del": total_del,
         "npu_del": [npu.pkts_delivered for npu in npus],
@@ -324,9 +327,17 @@ def draw(fm, sw, cycle):
                 f"{DIM}{SW_LINKS_PER_NPU} links/NPU→SW, VOQ+xbar{RESET}"))
     print(_bl(f"  {'─' * COL_W} │ {'─' * COL_W}"))
 
-    # Bandwidth
-    print(_side(f"BW: {BOLD}{sf['bw_gbps']:>8.0f}{RESET} Gbps",
-                f"BW: {BOLD}{ss['bw_gbps']:>8.0f}{RESET} Gbps"))
+    # Bandwidth (per NPU)
+    fm_max = (N_NPUS - 1) * FM_LINKS_PER_PAIR * LINK_BW_GBPS  # 15×4×112 = 6720
+    sw_max = SW_LINKS_PER_NPU * LINK_BW_GBPS                   # 32×112 = 3584
+    # But switch crossbar limits to 1 pkt/output/cycle → effective max:
+    sw_eff = LINK_BW_GBPS  # 1 pkt per output per cycle = 112 Gbps per dest
+    print(_side(f"Per-NPU BW: {BOLD}{sf['per_npu_bw_gbps']:>6.0f}{RESET} Gbps",
+                f"Per-NPU BW: {BOLD}{ss['per_npu_bw_gbps']:>6.0f}{RESET} Gbps"))
+    print(_side(f"  (max: {fm_max} Gbps mesh)",
+                f"  (max: {sw_max} Gbps link)"))
+    print(_side(f"Aggregate: {sf['agg_bw_gbps']:>8.0f} Gbps",
+                f"Aggregate: {ss['agg_bw_gbps']:>8.0f} Gbps"))
     print(_side(f"Injected:  {sf['inj']:>8d}",
                 f"Injected:  {ss['inj']:>8d}"))
     print(_side(f"Delivered: {sf['del']:>8d}",
@@ -408,14 +419,27 @@ def main():
     ss = sw.stats()
     print(f"  {GREEN}{BOLD}Simulation complete!{RESET}  ({t1-t0:.2f}s)")
     print(f"  {'─'*60}")
-    print(f"  {'':20s} {'FM16':>15s} {'SW16':>15s}")
-    print(f"  {'Bandwidth (Gbps)':20s} {sf['bw_gbps']:>15.0f} {ss['bw_gbps']:>15.0f}")
-    print(f"  {'Avg Latency':20s} {sf['avg']:>15.1f} {ss['avg']:>15.1f}")
-    print(f"  {'P50 Latency':20s} {sf['p50']:>15d} {ss['p50']:>15d}")
-    print(f"  {'P95 Latency':20s} {sf['p95']:>15d} {ss['p95']:>15d}")
-    print(f"  {'P99 Latency':20s} {sf['p99']:>15d} {ss['p99']:>15d}")
-    print(f"  {'Max Latency':20s} {sf['max_lat']:>15d} {ss['max_lat']:>15d}")
-    print(f"  {'Delivered pkts':20s} {sf['del']:>15d} {ss['del']:>15d}")
+    print(f"  {'':24s} {'FM16':>15s} {'SW16':>15s}")
+    print(f"  {'Per-NPU BW (Gbps)':24s} {sf['per_npu_bw_gbps']:>15.0f} {ss['per_npu_bw_gbps']:>15.0f}")
+    print(f"  {'Aggregate BW (Gbps)':24s} {sf['agg_bw_gbps']:>15.0f} {ss['agg_bw_gbps']:>15.0f}")
+    print(f"  {'Avg Latency (cycles)':24s} {sf['avg']:>15.1f} {ss['avg']:>15.1f}")
+    print(f"  {'P50 Latency':24s} {sf['p50']:>15d} {ss['p50']:>15d}")
+    print(f"  {'P95 Latency':24s} {sf['p95']:>15d} {ss['p95']:>15d}")
+    print(f"  {'P99 Latency':24s} {sf['p99']:>15d} {ss['p99']:>15d}")
+    print(f"  {'Max Latency':24s} {sf['max_lat']:>15d} {ss['max_lat']:>15d}")
+    print(f"  {'Delivered pkts':24s} {sf['del']:>15d} {ss['del']:>15d}")
+    print()
+    fm_cap = FM_LINKS_PER_PAIR * (N_NPUS - 1)  # pkt/cycle per NPU
+    sw_cap = N_NPUS  # total switch output pkt/cycle (shared by all NPUs)
+    sw_per_npu = sw_cap / N_NPUS  # per NPU
+    ratio_pct = sw_per_npu / fm_cap * 100
+    print(f"  {YELLOW}Why is SW16 bandwidth much lower?{RESET}")
+    print(f"    FM16 mesh:  each NPU has {N_NPUS-1} × {FM_LINKS_PER_PAIR} = {fm_cap} direct links")
+    print(f"                → {fm_cap} pkt/cycle per NPU = {fm_cap * LINK_BW_GBPS} Gbps")
+    print(f"    SW16 xbar:  {N_NPUS} output ports × 1 pkt/cycle = {sw_cap} pkt/cycle total")
+    print(f"                → {sw_per_npu:.0f} pkt/cycle per NPU = {sw_per_npu * LINK_BW_GBPS:.0f} Gbps")
+    print(f"    SW16 per-NPU capacity is only {ratio_pct:.1f}% of FM16!")
+    print(f"    Bottleneck: switch crossbar can only serve 1 pkt per output per cycle.")
     print()
 
 
