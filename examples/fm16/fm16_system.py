@@ -169,7 +169,10 @@ class SW5809s:
         self.pkts_switched = 0
         self.pkts_enqueued = 0
         self.pkts_dropped  = 0     # VOQ full drops
-        self.port_enq_count = [0] * self.n_ports  # per-egress-port enqueue count
+        self.port_enq_count = [0] * self.n_ports  # per-egress-port cumulative enqueue
+        self._voq_max_depth = [0] * self.n_ports  # per-egress-port peak VOQ depth
+        self._voq_depth_sum = [0] * self.n_ports  # for computing average
+        self._voq_snapshot_count = 0
 
     def npu_to_ports(self, npu_id):
         base = npu_id * self.ports_per_npu
@@ -236,8 +239,33 @@ class SW5809s:
         return sum(len(self.voqs[i][j])
                    for i in range(self.n_ports) for j in range(self.n_ports))
 
+    def snapshot_voq_depths(self):
+        """Snapshot current VOQ depths per egress port. Call every cycle."""
+        for out_port in range(self.n_ports):
+            depth = sum(len(self.voqs[i][out_port]) for i in range(self.n_ports))
+            if depth > self._voq_max_depth[out_port]:
+                self._voq_max_depth[out_port] = depth
+            self._voq_depth_sum[out_port] += depth
+        self._voq_snapshot_count += 1
+
+    def voq_depth_stats(self):
+        """Return per-dest-NPU VOQ depth stats: (avg_of_avg, avg_of_max, max_of_max)."""
+        if self._voq_snapshot_count == 0:
+            return 0, 0, 0
+        npu_avg = []
+        npu_max = []
+        for npu in range(N_NPUS):
+            ports = self.npu_to_ports(npu)
+            port_avgs = [self._voq_depth_sum[p] / self._voq_snapshot_count for p in ports]
+            port_maxs = [self._voq_max_depth[p] for p in ports]
+            npu_avg.append(sum(port_avgs) / len(port_avgs))
+            npu_max.append(max(port_maxs))
+        return (sum(npu_avg) / len(npu_avg),
+                sum(npu_max) / len(npu_max),
+                max(npu_max))
+
     def port_load_imbalance(self):
-        """Return (min, avg, max) enqueue count across egress ports per NPU."""
+        """Return (min, avg, max) cumulative enqueue count across egress ports per NPU."""
         imbalances = []
         for npu in range(N_NPUS):
             ports = self.npu_to_ports(npu)
@@ -329,7 +357,8 @@ class SW16System:
                 keep.append((t, src, port_idx, pkt))
         self._to_switch = keep
 
-        # Switch crossbar: 128 ports × 4 pkt/port = up to 512 pkt/cycle
+        # Switch crossbar: 128 ports × 1 pkt/port = 128 pkt/cycle max
+        self.switch.snapshot_voq_depths()  # track VOQ depths before scheduling
         delivered = self.switch.schedule()
         for (dst_npu, pkt) in delivered:
             self._to_npu.append((self.cycle + SW_XBAR_LATENCY + SW_LINK_LATENCY, pkt))
@@ -531,6 +560,8 @@ def main():
     sc   = sw_crd.stats()
     li_min, li_avg, li_max = sw_ind.switch.port_load_imbalance()
     lc_min, lc_avg, lc_max = sw_crd.switch.port_load_imbalance()
+    vi_avg, vi_avg_max, vi_peak = sw_ind.switch.voq_depth_stats()
+    vc_avg, vc_avg_max, vc_peak = sw_crd.switch.voq_depth_stats()
 
     print(f"  {GREEN}{BOLD}Simulation complete!{RESET}  ({t1-t0:.2f}s)")
     print(f"  {'─'*72}")
@@ -551,12 +582,17 @@ def main():
     print(f"    'independent': 128 uncoordinated RR pointers → collisions")
     print(f"    'coordinated': 1 global RR per dest NPU → no collision (ideal)")
     print(f"")
-    print(f"    {'Egress port load (per dest NPU)':40s} {'Independent':>14s} {'Coordinated':>14s}")
+    print(f"    {'Cumulative enqueue (per dest port)':40s} {'Independent':>14s} {'Coordinated':>14s}")
     print(f"    {'  Min enqueued':40s} {li_min:>14.0f} {lc_min:>14.0f}")
     print(f"    {'  Avg enqueued':40s} {li_avg:>14.0f} {lc_avg:>14.0f}")
     print(f"    {'  Max enqueued':40s} {li_max:>14.0f} {lc_max:>14.0f}")
     if li_avg > 0:
-        print(f"    {'  Max/Avg ratio (imbalance)':40s} {li_max/li_avg:>14.2f}x {lc_max/lc_avg:>14.2f}x")
+        print(f"    {'  Max/Avg ratio':40s} {li_max/li_avg:>14.2f}x {lc_max/lc_avg:>14.2f}x")
+    print(f"")
+    print(f"    {'VOQ depth (per egress port)':40s} {'Independent':>14s} {'Coordinated':>14s}")
+    print(f"    {'  Avg depth':40s} {vi_avg:>14.1f} {vc_avg:>14.1f}")
+    print(f"    {'  Avg peak depth':40s} {vi_avg_max:>14.1f} {vc_avg_max:>14.1f}")
+    print(f"    {'  Max peak depth (worst port)':40s} {vi_peak:>14d} {vc_peak:>14d}")
     print(f"")
     print(f"    VOQ collision causes the {'independent':s} mode to have")
     if si['p99'] > sc['p99']:
