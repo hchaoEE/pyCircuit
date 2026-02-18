@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iomanip>
 #include <map>
+
+#include <zlib.h>
 #include <set>
 #include <sstream>
 #include <string>
@@ -18,11 +20,23 @@ public:
   bool open(const std::filesystem::path &path, std::uint64_t startCycle) {
     close();
     path_ = path;
-    out_.open(path_, std::ios::out | std::ios::trunc);
-    if (!out_.is_open()) {
-      opened_ = false;
-      return false;
+    gzip_ = (path_.extension() == ".gz");
+
+    if (gzip_) {
+      // zlib expects a narrow C string path.
+      gz_ = gzopen(path_.string().c_str(), "wb");
+      if (!gz_) {
+        opened_ = false;
+        return false;
+      }
+    } else {
+      out_.open(path_, std::ios::out | std::ios::trunc);
+      if (!out_.is_open()) {
+        opened_ = false;
+        return false;
+      }
     }
+
     cur_cycle_ = startCycle;
     opened_ = true;
     return true;
@@ -32,17 +46,30 @@ public:
     if (!opened_) {
       return;
     }
-    if (out_.is_open()) {
-      out_.flush();
-      out_.close();
+    if (gzip_) {
+      if (gz_) {
+        gzflush(gz_, Z_FINISH);
+        gzclose(gz_);
+        gz_ = nullptr;
+      }
+    } else {
+      if (out_.is_open()) {
+        out_.flush();
+        out_.close();
+      }
     }
     writeMetaSidecar();
     opened_ = false;
+    gzip_ = false;
   }
 
   ~LinxTraceWriter() { close(); }
 
-  bool isOpen() const { return opened_ && out_.is_open(); }
+  bool isOpen() const {
+    if (!opened_)
+      return false;
+    return gzip_ ? (gz_ != nullptr) : out_.is_open();
+  }
 
   void atCycle(std::uint64_t cycle) {
     if (!isOpen()) {
@@ -299,7 +326,10 @@ private:
   }
 
   static std::filesystem::path deriveMetaPath(const std::filesystem::path &eventPath) {
-    const std::string s = eventPath.string();
+    std::string s = eventPath.string();
+    if (s.size() >= 3 && s.compare(s.size() - 3, 3, ".gz") == 0) {
+      s = s.substr(0, s.size() - 3);
+    }
     const std::string suffix = ".linxtrace.jsonl";
     if (s.size() >= suffix.size() && s.compare(s.size() - suffix.size(), suffix.size(), suffix) == 0) {
       return std::filesystem::path(s.substr(0, s.size() - suffix.size()) + ".linxtrace.meta.json");
@@ -309,6 +339,12 @@ private:
 
   void writeLine(const std::string &line) {
     if (!isOpen()) {
+      return;
+    }
+    if (gzip_) {
+      const std::string payload = line + "\n";
+      // gzwrite returns number of uncompressed bytes written.
+      (void)gzwrite(gz_, payload.data(), static_cast<unsigned>(payload.size()));
       return;
     }
     out_ << line << "\n";
@@ -418,6 +454,8 @@ private:
   }
 
   std::ofstream out_{};
+  gzFile gz_ = nullptr;
+  bool gzip_ = false;
   std::filesystem::path path_{};
   bool opened_ = false;
   std::uint64_t cur_cycle_ = 0;
