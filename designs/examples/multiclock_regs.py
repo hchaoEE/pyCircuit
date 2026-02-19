@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pycircuit import Circuit, compile_design, u
+from pycircuit import Circuit, compile, module, u
 
 
+@module
 def build(m: Circuit) -> None:
     clk_a = m.clock("clk_a")
     rst_a = m.reset("rst_a")
@@ -20,4 +21,4 @@ def build(m: Circuit) -> None:
 
 
 if __name__ == "__main__":
-    print(compile_design(build, name="multiclock_regs").emit_mlir())
+    print(compile(build, name="multiclock_regs").emit_mlir())

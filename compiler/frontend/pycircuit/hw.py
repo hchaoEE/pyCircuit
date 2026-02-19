@@ -5,6 +5,19 @@ from dataclasses import dataclass
 import inspect
 from typing import Any, Iterable, Iterator, Mapping, Union, overload
 
+from .connectors import (
+    Connector,
+    ConnectorBundle,
+    ConnectorError,
+    ConnectorStruct,
+    ModuleCollectionHandle,
+    ModuleInstanceHandle,
+    RegConnector,
+    WireConnector,
+    is_connector,
+    is_connector_bundle,
+    is_connector_struct,
+)
 from .dsl import Module, Signal
 from .literals import LiteralValue, infer_literal_width
 
@@ -76,6 +89,8 @@ class Wire:
         return self
 
     def _as_wire(self, v: Union["Wire", "Reg", Signal, int, LiteralValue], *, width: int | None) -> "Wire":
+        if isinstance(v, Connector):
+            v = v.read()
         if isinstance(v, Reg):
             v = v.q
         if isinstance(v, Wire):
@@ -213,13 +228,13 @@ class Wire:
         return self.lshr(amount=int(other))
 
     def __eq__(self, other: object) -> "Wire":  # type: ignore[override]
-        if not isinstance(other, (Wire, Reg, Signal, int, LiteralValue)):
+        if not isinstance(other, (Wire, Reg, Signal, Connector, int, LiteralValue)):
             return NotImplemented
         a, b = self._promote2(other)
         return Wire(self.m, self.m.eq(a.sig, b.sig))
 
     def __ne__(self, other: object) -> "Wire":  # type: ignore[override]
-        if not isinstance(other, (Wire, Reg, Signal, int, LiteralValue)):
+        if not isinstance(other, (Wire, Reg, Signal, Connector, int, LiteralValue)):
             return NotImplemented
         return ~(self == other)
 
@@ -494,7 +509,12 @@ class Reg:
     def __getitem__(self, idx: int | slice) -> Wire:
         return self.q[idx]
 
-    def set(self, value: Union[Wire, "Reg", Signal, int, LiteralValue], *, when: Union[Wire, Signal, int, LiteralValue] = 1) -> None:
+    def set(
+        self,
+        value: Union[Wire, "Reg", Signal, Connector, int, LiteralValue],
+        *,
+        when: Union[Wire, Signal, Connector, int, LiteralValue] = 1,
+    ) -> None:
         """Drive `self.next` (backedge) for a stateful variable.
 
         - `r.set(v)` is equivalent to `m.assign(r.next, v)`
@@ -504,7 +524,9 @@ class Reg:
         if not isinstance(m, Circuit):
             raise TypeError("Reg.set requires the Reg to belong to a Circuit")
 
-        def as_wire(v: Union[Wire, Reg, Signal, int, LiteralValue], *, width: int) -> Wire:
+        def as_wire(v: Union[Wire, Reg, Signal, Connector, int, LiteralValue], *, width: int) -> Wire:
+            if isinstance(v, Connector):
+                v = v.read()
             if isinstance(v, Reg):
                 return v.q
             if isinstance(v, Wire):
@@ -571,7 +593,9 @@ class Circuit(Module):
         """Create an integer constant `Wire` (two's complement at `width`)."""
         return Wire(self, super().const(int(value), width=width), signed=(int(value) < 0))
 
-    def output(self, name: str, value: Union[Wire, Reg, Signal, int, LiteralValue]) -> None:  # type: ignore[override]
+    def output(self, name: str, value: Union[Wire, Reg, Signal, Connector, int, LiteralValue]) -> None:  # type: ignore[override]
+        if isinstance(value, Connector):
+            value = value.read()
         if isinstance(value, Reg):
             super().output(name, value.q.sig)
             return
@@ -589,7 +613,7 @@ class Circuit(Module):
             w = infer_literal_width(int(value), signed=(int(value) < 0))
             super().output(name, super().const(int(value), width=w))
             return
-        raise TypeError(f"output() expects Wire/Reg/Signal/int/literal, got {type(value).__name__}")
+        raise TypeError(f"output() expects Wire/Reg/Signal/Connector/int/literal, got {type(value).__name__}")
 
     def new_wire(self, *, width: int) -> Wire:
         return Wire(self, super().new_wire(width=width), assignable=True)
@@ -680,7 +704,19 @@ class Circuit(Module):
         """Emit occupancy probes as `dbg__occ_<stage>_<field>_lane<k>_<stage>`."""
         return self.debug_probe(stage, lane, fields, family="occ")
 
-    def assign(self, dst: Union[Wire, Reg, Signal], src: Union[Wire, Reg, Signal, int, LiteralValue]) -> None:  # type: ignore[override]
+    def assign(
+        self,
+        dst: Union[Wire, Reg, Signal, Connector],
+        src: Union[Wire, Reg, Signal, Connector, int, LiteralValue],
+    ) -> None:  # type: ignore[override]
+        if isinstance(dst, Connector):
+            if isinstance(dst, RegConnector):
+                dst.set(src)
+                return
+            dst = dst.read()
+        if isinstance(src, Connector):
+            src = src.read()
+
         def as_sig(v: Union[Wire, Reg, Signal]) -> Signal:
             if isinstance(v, Reg):
                 return v.q.sig
@@ -872,31 +908,414 @@ class Circuit(Module):
     def bundle(self, **fields: Union["Wire", "Reg"]) -> "Bundle":
         return Bundle(fields)
 
-    def instance(
+    def as_connector(
+        self,
+        value: Union[Connector, Wire, Reg, Signal, LiteralValue, int],
+        *,
+        name: str | None = None,
+    ) -> Connector:
+        if isinstance(value, Connector):
+            if value.owner is not self:
+                raise ConnectorError("connector belongs to a different Circuit")
+            return value
+        if isinstance(value, Reg):
+            if value.q.m is not self:
+                raise ConnectorError("reg belongs to a different Circuit")
+            return RegConnector(owner=self, name=str(name or value.ref), reg=value)
+        if isinstance(value, Wire):
+            if value.m is not self:
+                raise ConnectorError("wire belongs to a different Circuit")
+            return WireConnector(owner=self, name=str(name or value.ref), wire=value)
+        if isinstance(value, Signal):
+            return WireConnector(owner=self, name=str(name or value.ref), wire=value)
+        if isinstance(value, LiteralValue):
+            lit_w, lit_signed = _coerce_literal_width(value, ctx_width=value.width, ctx_signed=value.signed)
+            w = Wire(self, Module.const(self, int(value.value), width=int(lit_w)), signed=lit_signed)
+            return WireConnector(owner=self, name=str(name or f"lit_{int(value.value)}"), wire=w)
+        if isinstance(value, int):
+            ww = infer_literal_width(int(value), signed=(int(value) < 0))
+            w = self.const(int(value), width=ww)
+            return WireConnector(owner=self, name=str(name or f"lit_{int(value)}"), wire=w)
+        raise ConnectorError(f"expected Connector/Wire/Reg/Signal/int/literal, got {type(value).__name__}")
+
+    def input_connector(self, name: str, *, width: int, signed: bool = False) -> WireConnector:
+        w = self.input(str(name), width=width, signed=signed)
+        return WireConnector(owner=self, name=str(name), wire=w)
+
+    def output_connector(
+        self,
+        name: str,
+        value: Union[Connector, Wire, Reg, Signal, None] = None,
+        *,
+        width: int | None = None,
+    ) -> Connector:
+        if value is None:
+            if width is None:
+                raise TypeError("output_connector() requires `value` or `width`")
+            w = self.named_wire(str(name), width=int(width))
+            self.output(str(name), w)
+            return WireConnector(owner=self, name=str(name), wire=w)
+        c = self.as_connector(value, name=str(name))
+        self.output(str(name), c)
+        return c
+
+    def reg_connector(
+        self,
+        name: str,
+        *,
+        clk: Signal | None = None,
+        rst: Signal | None = None,
+        domain: ClockDomain | None = None,
+        width: int,
+        init: Union[Wire, Reg, Signal, int, LiteralValue] = 0,
+        en: Union[Wire, Signal, int, LiteralValue] = 1,
+        stage: str | None = None,
+    ) -> RegConnector:
+        r = self.out(
+            str(name),
+            clk=clk,
+            rst=rst,
+            domain=domain,
+            width=width,
+            init=init,
+            en=en,
+            stage=stage,
+        )
+        return RegConnector(owner=self, name=str(name), reg=r)
+
+    def bundle_connector(self, **fields: Union[Connector, Wire, Reg, Signal]) -> ConnectorBundle:
+        out: dict[str, Connector] = {}
+        for k, v in fields.items():
+            out[str(k)] = self.as_connector(v, name=str(k))
+        return ConnectorBundle(out)
+
+    def connect(
+        self,
+        dst: Connector | ConnectorBundle | ConnectorStruct,
+        src: Connector | ConnectorBundle | ConnectorStruct | Wire | Reg | Signal,
+        *,
+        when: Union[Wire, Signal, int, LiteralValue] = 1,
+    ) -> None:
+        if isinstance(dst, ConnectorStruct):
+            if not isinstance(src, ConnectorStruct):
+                raise ConnectorError("struct connect requires ConnectorStruct source")
+            dkeys = set(dst.keys())
+            skeys = set(src.keys())
+            if dkeys != skeys:
+                missing = sorted(dkeys - skeys)
+                extra = sorted(skeys - dkeys)
+                parts: list[str] = []
+                if missing:
+                    parts.append("missing: " + ", ".join(missing))
+                if extra:
+                    parts.append("extra: " + ", ".join(extra))
+                raise ConnectorError(f"struct connect key mismatch ({'; '.join(parts)})")
+            dflat = dst.flatten()
+            sflat = src.flatten()
+            for k in sorted(dkeys):
+                self.connect(dflat[k], sflat[k], when=when)
+            return
+
+        if isinstance(dst, ConnectorBundle):
+            if not isinstance(src, ConnectorBundle):
+                raise ConnectorError("bundle connect requires ConnectorBundle source")
+            dkeys = set(dst.keys())
+            skeys = set(src.keys())
+            if dkeys != skeys:
+                missing = sorted(dkeys - skeys)
+                extra = sorted(skeys - dkeys)
+                parts: list[str] = []
+                if missing:
+                    parts.append("missing: " + ", ".join(missing))
+                if extra:
+                    parts.append("extra: " + ", ".join(extra))
+                raise ConnectorError(f"bundle connect key mismatch ({'; '.join(parts)})")
+            for k in sorted(dkeys):
+                self.connect(dst[k], src[k], when=when)
+            return
+
+        d = self.as_connector(dst)
+        s = self.as_connector(src) if not isinstance(src, Connector) else self.as_connector(src)
+
+        if isinstance(d, RegConnector):
+            d.set(s.read(), when=when)
+            return
+        if not (isinstance(when, int) and int(when) == 1):
+            raise ConnectorError("conditional connect (`when=...`) is only supported for RegConnector destinations")
+        self.assign(d.read(), s.read())
+
+    def inputs(self, spec: Any, *, prefix: str | None = None) -> ConnectorBundle | ConnectorStruct:
+        """Declare connector-backed input ports from a meta spec."""
+        from .meta.connect import inputs
+
+        return inputs(self, spec, prefix=prefix)
+
+    def outputs(
+        self,
+        spec: Any,
+        values: ConnectorBundle | ConnectorStruct | Mapping[str, Any],
+        *,
+        prefix: str | None = None,
+    ) -> ConnectorBundle | ConnectorStruct:
+        """Declare connector-backed output ports from a meta spec."""
+        from .meta.connect import outputs
+
+        return outputs(self, spec, values, prefix=prefix)
+
+    def state(
+        self,
+        spec: Any,
+        *,
+        clk: Connector | Signal,
+        rst: Connector | Signal,
+        prefix: str | None = None,
+        init: Mapping[str, Any] | Any = 0,
+        en: Connector | Signal | int | LiteralValue = 1,
+    ) -> ConnectorBundle | ConnectorStruct:
+        """Declare state register connectors from a meta spec."""
+        from .meta.connect import state
+
+        return state(
+            self,
+            spec,
+            clk=clk,
+            rst=rst,
+            prefix=prefix,
+            init=init,
+            en=en,
+        )
+
+    def pipe(
+        self,
+        spec: Any,
+        src_values: ConnectorBundle | ConnectorStruct | Mapping[str, Any],
+        *,
+        clk: Connector | Signal,
+        rst: Connector | Signal,
+        en: Connector | Signal | int | LiteralValue = 1,
+        flush: Connector | Signal | int | LiteralValue | None = None,
+        prefix: str | None = None,
+        init: Mapping[str, Any] | Any = 0,
+    ) -> ConnectorBundle | ConnectorStruct:
+        """Register a stage payload and connect inputs with optional flush."""
+        regs = self.state(spec, clk=clk, rst=rst, prefix=prefix, init=init, en=en)
+
+        if isinstance(regs, ConnectorStruct):
+            if not isinstance(src_values, ConnectorStruct):
+                if isinstance(src_values, Mapping):
+                    src = ConnectorStruct(src_values)
+                else:
+                    raise ConnectorError("pipe(struct): source must be ConnectorStruct or mapping")
+            else:
+                src = src_values
+            self.connect(regs, src, when=en)
+            if flush is not None:
+                for _, r in regs.items():
+                    if isinstance(r, RegConnector):
+                        r.set(0, when=flush)
+            return regs
+
+        src_map: Mapping[str, Any]
+        if isinstance(src_values, ConnectorBundle):
+            src_map = {k: v for k, v in src_values.items()}
+        elif isinstance(src_values, Mapping):
+            src_map = dict(src_values)
+        else:
+            raise ConnectorError("pipe(bundle): source must be ConnectorBundle or mapping")
+
+        dkeys = set(regs.keys())
+        skeys = set(str(k) for k in src_map.keys())
+        missing = sorted(dkeys - skeys)
+        extra = sorted(skeys - dkeys)
+        if missing or extra:
+            parts: list[str] = []
+            if missing:
+                parts.append("missing: " + ", ".join(missing))
+            if extra:
+                parts.append("extra: " + ", ".join(extra))
+            raise ConnectorError(f"pipe key mismatch ({'; '.join(parts)})")
+
+        for key in sorted(dkeys):
+            self.connect(regs[key], self.as_connector(src_map[key], name=key), when=en)
+        if flush is not None:
+            for key in sorted(dkeys):
+                r = regs[key]
+                if isinstance(r, RegConnector):
+                    r.set(0, when=flush)
+        return regs
+
+    def new(
+        self,
+        fn: Any,
+        *,
+        name: str,
+        bind: Mapping[str, Connector | ConnectorBundle | ConnectorStruct | Mapping[str, Any] | Any],
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+    ) -> ModuleInstanceHandle:
+        """Instantiate a module from connector/spec bindings."""
+        from .meta.connect import ports
+
+        bound_ports = ports(self, bind)
+        return self.instance_handle(
+            fn,
+            name=str(name),
+            params=params,
+            module_name=module_name,
+            **bound_ports,
+        )
+
+    def instance_auto(
         self,
         fn: Any,
         *,
         name: str,
         params: dict[str, Any] | None = None,
         module_name: str | None = None,
-        **ports: Union["Wire", "Reg", Signal, int, LiteralValue],
-    ) -> Union["Bundle", Wire]:
-        """Instantiate a specialized sub-module.
+        **ports: Any,
+    ) -> Connector | ConnectorBundle:
+        """Instantiate a module while auto-wrapping port values as connectors."""
+        wrapped = {str(k): self.as_connector(v, name=str(k)) for k, v in ports.items()}
+        return self.instance(
+            fn,
+            name=str(name),
+            params=params,
+            module_name=module_name,
+            **wrapped,
+        )
 
-        The callee is a Python module function `fn(m: Circuit, ...)` compiled into
-        the current multi-module Design via `jit.compile_design(...)`.
+    @staticmethod
+    def _sanitize_instance_key(key: Any) -> str:
+        raw = str(key)
+        if not raw:
+            return "k"
+        out = []
+        for ch in raw:
+            if ch.isalnum() or ch == "_":
+                out.append(ch)
+            else:
+                out.append("_")
+        s = "".join(out).strip("_")
+        return s or "k"
 
-        - `name` is the instance name (used in codegen).
-        - `params` are compile-time specialization parameters for the callee.
-        - Remaining kwargs are port connections by callee port name.
+    def _resolve_keyed_binding(self, v: Any, key: str) -> Any:
+        if callable(v):
+            return v(key)
+        return v
 
-        Return contract (hard-break v2):
-        - single output: return `Wire`
-        - multiple outputs: return `Bundle`
+    def array(
+        self,
+        fn_or_collection: Any,
+        *,
+        name: str,
+        bind: Mapping[str, Any],
+        keys: Iterable[Any] | None = None,
+        per: Mapping[str, Mapping[str, Any]] | None = None,
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+    ) -> ModuleCollectionHandle:
+        """Instantiate a deterministic collection of module instances.
+
+        `fn_or_collection` may be:
+        - a `@module` function (requires `keys`)
+        - a `meta.Module*Spec` collection (fn/keys inferred)
         """
+        from .meta.types import (
+            ModuleDictSpec,
+            ModuleFamilySpec,
+            ModuleListSpec,
+            ModuleMapSpec,
+            ModuleVectorSpec,
+            iter_module_collection,
+        )
+
+        fn = fn_or_collection
+        key_list: list[tuple[str, dict[str, Any] | None]] = []
+        base_params = dict(params or {})
+
+        if isinstance(fn_or_collection, ModuleFamilySpec):
+            fn = fn_or_collection.module
+            if keys is None:
+                raise TypeError("array(ModuleFamilySpec, ...) requires `keys=`")
+            if fn_or_collection.params is not None:
+                base_params.update(fn_or_collection.params.as_dict())
+            key_list = [(str(k), None) for k in sorted((str(x) for x in keys), key=lambda x: x)]
+        elif isinstance(fn_or_collection, (ModuleListSpec, ModuleVectorSpec, ModuleMapSpec, ModuleDictSpec)):
+            family = fn_or_collection.family
+            fn = family.module
+            if family.params is not None:
+                base_params.update(family.params.as_dict())
+            for k, ps in iter_module_collection(fn_or_collection):
+                key_list.append((str(k), None if ps is None else ps.as_dict()))
+        else:
+            if keys is None:
+                raise TypeError("array(fn, ...) requires `keys=`")
+            key_list = [(str(k), None) for k in sorted((str(x) for x in keys), key=lambda x: x)]
+
+        if not key_list:
+            raise ValueError("array requires at least one key")
+
+        keyed_bindings = dict(per or {})
+        instances: dict[str, ModuleInstanceHandle] = {}
+        outputs: dict[str, Connector | ConnectorBundle | ConnectorStruct] = {}
+
+        for key, param_override in key_list:
+            merged_bindings: dict[str, Any] = {}
+            for pname, vv in bind.items():
+                merged_bindings[str(pname)] = self._resolve_keyed_binding(vv, key)
+            if key in keyed_bindings:
+                for pname, vv in keyed_bindings[key].items():
+                    merged_bindings[str(pname)] = self._resolve_keyed_binding(vv, key)
+
+            inst_params = dict(base_params)
+            if param_override:
+                inst_params.update(param_override)
+
+            inst_name = f"{str(name)}_{self._sanitize_instance_key(key)}"
+            inst = self.new(
+                fn,
+                name=inst_name,
+                bind=merged_bindings,
+                params=inst_params,
+                module_name=module_name,
+            )
+            instances[key] = inst
+            outputs[key] = inst.outputs
+
+        return ModuleCollectionHandle(
+            name=str(name),
+            instances=instances,
+            outputs=outputs,
+        )
+
+    def _coerce_instance_connector(self, v: Any, *, port: str) -> Connector:
+        from .design import DesignError
+
+        if is_connector_bundle(v):
+            raise DesignError(f"instance port {port!r}: ConnectorBundle is not valid for a single callee port")
+        if is_connector_struct(v):
+            raise DesignError(f"instance port {port!r}: ConnectorStruct is not valid for a single callee port")
+        if not is_connector(v):
+            raise DesignError(
+                f"instance port {port!r}: expected Connector, got {type(v).__name__}; "
+                "inter-module links must use input_connector/output_connector/reg_connector/bundle_connector"
+            )
+        c = self.as_connector(v, name=port)
+        return c
+
+    def instance_handle(
+        self,
+        fn: Any,
+        *,
+        name: str,
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+        **ports: Connector,
+    ) -> ModuleInstanceHandle:
+        """Instantiate a specialized sub-module and return a rich instance handle."""
 
         if self._design_ctx is None:
-            raise TypeError("Circuit.instance requires a design context (compile via pycircuit.jit.compile_design)")
+            raise TypeError("Circuit.instance requires a design context (compile via pycircuit.jit.compile)")
 
         from .design import DesignContext, DesignError
 
@@ -907,6 +1326,10 @@ class Circuit(Module):
         overlap = sorted(set(params_dict.keys()) & set(ports.keys()))
         if overlap:
             raise DesignError(f"instance params/ports overlap: {', '.join(overlap)}")
+
+        normalized_ports: dict[str, Connector] = {}
+        for pname, v in ports.items():
+            normalized_ports[str(pname)] = self._coerce_instance_connector(v, port=str(pname))
 
         # Signature-bound hardware args: if a function parameter name is provided
         # as a port connection, treat it as a formal input type for specialization.
@@ -922,31 +1345,25 @@ class Circuit(Module):
         except (TypeError, ValueError):
             sig_param_names = set()
 
-        for pname in sorted(sig_param_names & set(ports.keys())):
-            v = ports[pname]
-            if isinstance(v, Reg):
-                v = v.q
-            if isinstance(v, Wire):
-                if v.m is not self:
+        for pname in sorted(sig_param_names & set(normalized_ports.keys())):
+            c = normalized_ports[pname]
+            rv = c.read()
+            if isinstance(rv, Wire):
+                if rv.m is not self:
                     raise DesignError(f"instance port {pname!r}: cannot connect a wire from a different module")
-                sig_port_specs[pname] = {"kind": "wire", "ty": v.ty, "signed": bool(v.signed)}
+                sig_port_specs[pname] = {"kind": "wire", "ty": rv.ty, "signed": bool(getattr(rv, "signed", False))}
                 continue
-            if isinstance(v, Signal):
-                if v.ty == "!pyc.clock":
+            if isinstance(rv, Signal):
+                if rv.ty == "!pyc.clock":
                     sig_port_specs[pname] = {"kind": "clock"}
-                elif v.ty == "!pyc.reset":
+                elif rv.ty == "!pyc.reset":
                     sig_port_specs[pname] = {"kind": "reset"}
-                elif v.ty.startswith("i"):
-                    sig_port_specs[pname] = {"kind": "wire", "ty": v.ty, "signed": False}
+                elif rv.ty.startswith("i"):
+                    sig_port_specs[pname] = {"kind": "wire", "ty": rv.ty, "signed": bool(getattr(c, "signed", False))}
                 else:
-                    raise DesignError(f"instance port {pname!r}: unsupported signal type {v.ty!r}")
+                    raise DesignError(f"instance port {pname!r}: unsupported signal type {rv.ty!r}")
                 continue
-            if isinstance(v, int):
-                raise DesignError(
-                    f"instance port {pname!r}: cannot infer signature-bound integer port type; "
-                    "use u(width, value)/s(width, value) or connect a typed Wire instead"
-                )
-            raise DesignError(f"instance port {pname!r}: unsupported value type {type(v).__name__}")
+            raise DesignError(f"instance port {pname!r}: unsupported connector payload {type(rv).__name__}")
 
         cm = self._design_ctx.specialize(
             fn,
@@ -956,7 +1373,7 @@ class Circuit(Module):
         )
 
         expected = set(cm.arg_names)
-        provided = set(ports.keys())
+        provided = set(normalized_ports.keys())
         missing = sorted(expected - provided)
         extra = sorted(provided - expected)
         if missing or extra:
@@ -967,32 +1384,18 @@ class Circuit(Module):
                 parts.append("extra: " + ", ".join(extra))
             raise DesignError(f"instance port mismatch for {cm.sym_name!r} ({'; '.join(parts)})")
 
-        def coerce_to_sig(v: Union[Wire, Reg, Signal, int, LiteralValue], *, expected_ty: str, port: str) -> Signal:
-            if isinstance(v, Reg):
-                v = v.q
-            if isinstance(v, Wire):
-                if v.m is not self:
+        def coerce_to_sig(c: Connector, *, expected_ty: str, port: str) -> Signal:
+            rv = c.read()
+            if isinstance(rv, Wire):
+                if rv.m is not self:
                     raise DesignError(f"instance port {port!r}: cannot connect a wire from a different module")
-                sig = v.sig
-            elif isinstance(v, Signal):
-                sig = v
-            elif isinstance(v, int):
-                if expected_ty == "!pyc.clock" or expected_ty == "!pyc.reset":
-                    raise DesignError(f"instance port {port!r}: clock/reset ports cannot be driven by integers")
-                if not expected_ty.startswith("i"):
-                    raise DesignError(f"instance port {port!r}: expected {expected_ty}, got int")
-                width = int(expected_ty[1:])
-                sig = self.const(int(v), width=width).sig
-            elif isinstance(v, LiteralValue):
-                if expected_ty == "!pyc.clock" or expected_ty == "!pyc.reset":
-                    raise DesignError(f"instance port {port!r}: clock/reset ports cannot be driven by literals")
-                if not expected_ty.startswith("i"):
-                    raise DesignError(f"instance port {port!r}: expected {expected_ty}, got LiteralValue")
-                width = int(expected_ty[1:])
-                lit_w, _ = _coerce_literal_width(v, ctx_width=width, ctx_signed=v.signed)
-                sig = self.const(int(v.value), width=lit_w).sig
+                sig = rv.sig
+                src_signed = bool(rv.signed)
+            elif isinstance(rv, Signal):
+                sig = rv
+                src_signed = bool(getattr(c, "signed", False))
             else:
-                raise DesignError(f"instance port {port!r}: unsupported value type {type(v).__name__}")
+                raise DesignError(f"instance port {port!r}: unsupported connector payload {type(rv).__name__}")
 
             if sig.ty == expected_ty:
                 return sig
@@ -1001,11 +1404,10 @@ class Circuit(Module):
             if sig.ty.startswith("i") and expected_ty.startswith("i"):
                 got_w = _int_width(sig.ty)
                 exp_w = _int_width(expected_ty)
-                w = Wire(self, sig)
                 if got_w < exp_w:
-                    return (self.sext(w.sig, width=exp_w) if w.signed else self.zext(w.sig, width=exp_w))
+                    return self.sext(sig, width=exp_w) if src_signed else self.zext(sig, width=exp_w)
                 if got_w > exp_w:
-                    return self.trunc(w.sig, width=exp_w)
+                    return self.trunc(sig, width=exp_w)
                 return sig
 
             raise DesignError(f"instance port {port!r}: type mismatch, got {sig.ty} expected {expected_ty}")
@@ -1013,15 +1415,58 @@ class Circuit(Module):
         # Build operands in callee signature order.
         operands: list[Signal] = []
         for pname, pty in zip(cm.arg_names, cm.arg_types):
-            operands.append(coerce_to_sig(ports[pname], expected_ty=pty, port=pname))
+            operands.append(coerce_to_sig(normalized_ports[pname], expected_ty=pty, port=pname))
 
         outs = self.instance_op(cm.sym_name, *operands, result_types=list(cm.result_types), name=str(name))
-        out_fields: dict[str, Union[Wire, Reg]] = {}
+        out_fields: dict[str, Connector] = {}
         for oname, sig in zip(cm.result_names, outs):
-            out_fields[oname] = Wire(self, sig)
-        if len(out_fields) == 1:
-            return next(iter(out_fields.values()))  # type: ignore[return-value]
-        return Bundle(out_fields)
+            out_fields[oname] = WireConnector(owner=self, name=oname, wire=Wire(self, sig))
+        force_bundle = False
+        try:
+            ann = inspect.signature(cm.fn).return_annotation
+            if ann is ConnectorBundle:
+                force_bundle = True
+            elif isinstance(ann, str) and ann.replace(" ", "").lower() == "connectorbundle":
+                force_bundle = True
+        except (TypeError, ValueError):
+            pass
+
+        if len(out_fields) == 1 and not force_bundle:
+            outputs: Connector | ConnectorBundle = next(iter(out_fields.values()))
+        else:
+            outputs = ConnectorBundle(out_fields)
+
+        return ModuleInstanceHandle(
+            name=str(name),
+            symbol=str(cm.sym_name),
+            inputs=dict(normalized_ports),
+            outputs=outputs,
+        )
+
+    def instance(
+        self,
+        fn: Any,
+        *,
+        name: str,
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+        **ports: Connector,
+    ) -> Connector | ConnectorBundle:
+        """Instantiate a specialized sub-module.
+
+        Hard-break v3 contract:
+        - inter-module port bindings must be `Connector`s
+        - single output: return `Connector`
+        - multiple outputs: return `ConnectorBundle`
+        """
+
+        return self.instance_handle(
+            fn,
+            name=name,
+            params=params,
+            module_name=module_name,
+            **ports,
+        ).outputs
 
     def byte_mem(
         self,
@@ -1291,7 +1736,7 @@ class Vec:
         if callable(concat):
             return Wire(m, concat(*(w.sig for w in ws)))
 
-        # Fallback: build packing from basic shifts + ors (legacy Module backends).
+        # Fallback: build packing from basic shifts + ors for minimal backends.
         if not isinstance(m, Circuit):
             raise TypeError("Vec.pack requires a Circuit/Module with a concat() builder")
         acc = m.const(0, width=out_w)

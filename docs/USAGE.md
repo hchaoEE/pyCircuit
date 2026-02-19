@@ -1,506 +1,97 @@
-# pyCircuit Usage Guide (prototype, evolving)
+# pyCircuit v3.4 Usage
 
-This document is the practical “how to write real designs” guide for pyCircuit.
-It focuses on the Python frontend, the JIT/SCF rules, and how to debug what you
-generate in Verilog and C++.
+## 1) Required contracts
 
-> Key idea: write **sequential-looking** Python that is compiled into a **static**
-> hardware circuit (parallel combinational logic + clocked state).
+- Top entrypoint must be `@module`.
+- Helper logic must be `@function` or `@const`.
+- Inter-module links must use connectors.
+- Removed APIs fail at source/JIT compile stage.
 
----
+## 2) Decorators
 
-## 1) Mental model
+- `@module`: hierarchy-preserving boundary
+- `@function`: inline hardware helper
+- `@const`: compile-time pure helper; may not emit IR or mutate module state
 
-- A `build(m: Circuit, ...)` function describes a **module**.
-- `Wire` is a combinational value (`iN`).
-- `Reg` is a clocked state element with an explicit “next” (via `set()`).
-- Python `if` / `for range(...)` inside JIT mode compile into MLIR `scf.*`, then
-  `pyc-compile` lowers `scf` into static mux/unrolled logic.
+## 3) Circuit API
 
-### Static control flow only
+Core connectors:
+- `input_connector`, `output_connector`, `reg_connector`, `bundle_connector`, `as_connector`, `connect`
 
-- **Allowed**: `if cond:` where `cond` is:
-  - a Python `bool/int` (compile-time) or
-  - an `i1` `Wire` (hardware conditional)
-- **Allowed**: `for _ in range(CONST)` (fully unrolled).
-- **Not allowed**: dynamic loops, variable loop bounds, while-loops, recursion.
+Spec-driven grammar:
+- `inputs(spec, prefix=...)`
+- `outputs(spec, values, prefix=...)`
+- `state(spec, clk=..., rst=..., prefix=..., init=..., en=...)`
+- `pipe(spec, src_values, clk=..., rst=..., en=..., flush=..., prefix=..., init=...)`
 
----
+Instantiation:
+- `new(fn, name=..., bind=..., params=..., module_name=...)`
+- `array(fn_or_collection, name=..., bind=..., keys=..., per=..., params=..., module_name=...)`
 
-## 2) Writing a design
+## 4) Top-level compile API
 
-### 2.1 Top-level skeleton (JIT mode is default)
+Use:
+- `from pycircuit import compile`
+- `compile(build, name="Top", **jit_params)`
 
-`pycircuit.cli emit` treats `build(m: Circuit, ...)` as a JIT design function
-as long as all non-`m` parameters have defaults.
+Removed:
+- legacy compile entrypoint
+- legacy template decorator alias
+
+## 5) Compile-time helpers
+
+### `ct`
+
+Arithmetic helpers include:
+- `clog2`, `flog2`, `div_ceil`, `align_up`, `pow2_ceil`, `bitmask`
+- `is_pow2`, `pow2_floor`, `gcd`, `lcm`, `clamp`, `wrap_inc`, `wrap_dec`, `slice_width`, `bits_for_enum`, `onehot`, `decode_mask`
+
+### `meta`
+
+Types:
+- `FieldSpec`, `BundleSpec`, `InterfaceSpec`, `StagePipeSpec`
+- `StructFieldSpec`, `StructSpec`
+- `ParamSpec`, `ParamSet`, `ParamSpace`, `DecodeRule`
+- `ModuleFamilySpec`, `ModuleListSpec`, `ModuleVectorSpec`, `ModuleMapSpec`, `ModuleDictSpec`
+
+Builders:
+- `bundle(...)`, `iface(...)`, `struct(...)`, `stage_pipe(...)`, `params(...)`, `ruleset(...)`, `module_family(...)`, `valueclass`
+
+Connect helpers:
+- `meta.bind(...)`, `meta.ports(...)`
+- `meta.inputs(...)`, `meta.outputs(...)`, `meta.state(...)`
+- `meta.connect(...)`
+
+## 6) Minimal example
 
 ```python
-from pycircuit import Circuit, u
+from pycircuit import Circuit, compile, meta, module, const
 
-def build(m: Circuit, STAGES: int = 3) -> None:
-    clk = m.clock("clk")
-    rst = m.reset("rst")
+@const
+def lane_spec(m: Circuit, width: int):
+    _ = m
+    return meta.struct("lane").field("data", width=width).field("valid", width=1).build()
 
-    a = m.input("a", width=16)
-    b = m.input("b", width=16)
+@module
+def build(m: Circuit, width: int = 32):
+    spec = lane_spec(m, width)
+    inp = m.inputs(spec, prefix="in_")
+    m.outputs(spec, {"data": inp["data"], "valid": inp["valid"]}, prefix="out_")
 
-    r = m.out("acc", clk=clk, rst=rst, width=16, init=u(16, 0))
-
-    x = a + b
-    r.set(x)  # default when=1
-
-    m.output("acc", r)
+print(compile(build, name="demo").emit_mlir())
 ```
 
-You can override JIT parameters from the CLI (repeat `--param` as needed):
+## 7) API hygiene
+
+Run strict source contract checks:
 
 ```bash
-PYTHONPATH=compiler/frontend python3 -m pycircuit.cli emit designs/examples/fastfwd_pyc/fastfwd_pyc.py \
-  --param N_FE=8 \
-  --param LANE_Q_DEPTH=64 --param ROB_DEPTH=32 \
-  -o /tmp/fastfwd.pyc
+python3 /Users/zhoubot/pyCircuit/flows/tools/check_api_hygiene.py
 ```
 
-### 2.2 Stage-friendly coding style
-
-Write each pipeline stage in the same pattern:
-
-```python
-with m.scope("EX"):
-    a = prev_a.out()
-    b = prev_b.out()
-    y = a + b
-    next_a.set(y)
-```
-
-- `.out()` reads the current flop output (`q`).
-- `.set(v, when=cond)` drives the backedge “next” wire (`d`).
-- `with m.scope("NAME"):` prefixes debug names for easier traceability.
-
-### 2.3 Hierarchy: function-call auto-instantiation (default)
-
-In the refactored frontend, plain function calls become module instances by
-default in design context.
-
-`pycircuit.cli emit` compiles a design into a single MLIR `module { ... }` that
-can contain multiple `func.func` modules connected by `pyc.instance`.
-
-```python
-from pycircuit import Circuit, module, jit_inline
-
-@module(name="Core")
-def core(m: Circuit, *, WIDTH: int = 32) -> None:
-    x = m.input("x", width=WIDTH)
-    m.output("y", x + 1)
-
-@jit_inline
-def add_const(m: Circuit, x, c: int = 1):
-    # Inline helper (does not create a submodule).
-    return x + c
-
-def build(m: Circuit) -> None:
-    x = m.input("x", width=32)
-
-    # Auto-instance call:
-    # - hardware args -> ports
-    # - Python literals -> specialization params
-    u0 = core(m, x=x, WIDTH=32)
-
-    y = add_const(m, u0["y"], c=3)  # explicitly inlined helper
-    m.output("y", y)
-```
-
-Key rules:
-
-- Auto-instance applies to module-style calls `fn(m, ...)` with hardware values.
-- Hardware values (`Wire`/`Reg`/`Signal`/containers) map to ports.
-- Python literals map to specialization parameters.
-- For complex specialization objects, prefer explicit `Circuit.instance(..., params=...)`.
-- Instance names are deterministic callsite names: `<callee>__L<line>__N<idx>`.
-- `@jit_inline` is the explicit inline escape hatch.
-- `Circuit.instance(...)` remains available for fully explicit instantiation control.
-
-To scale builds, `pyc-compile` also supports split emission:
+For external projects:
 
 ```bash
-pyc-compile design.pyc --emit=verilog --out-dir out/
-pyc-compile design.pyc --emit=cpp --out-dir out/
+python3 /Users/zhoubot/pyCircuit/flows/tools/check_api_hygiene.py \
+  --scan-root /Users/zhoubot/LinxCore src
 ```
-
-For C++ split control and compile manifest output:
-
-```bash
-pyc-compile design.pyc --emit=cpp --out-dir out/ \
-  --cpp-split=module \
-  --cpp-shard-threshold-lines=120000 \
-  --cpp-shard-threshold-bytes=4194304 \
-  --cpp-manifest=out/cpp_compile_manifest.json
-```
-
-This emits per-module `*.hpp` + `*.cpp` files and a `cpp_compile_manifest.json`
-that downstream build scripts can use for parallel TU compilation.
-
-#### C++ backend optimization: instance eval cache (default-on)
-
-For generated C++ only, `pyc-compile` emits an input-change cache for each
-`pyc.instance` callsite. During parent `eval()`, a submodule's `eval()` is
-invoked only when at least one instance input has changed since the previous
-parent `eval()` pass. Outputs are still re-driven every pass from the submodule
-state, so behavior remains stable while reducing redundant recomputation.
-
-Across clock ticks, cache validity now stays live for provably combinational
-submodules (no sequential primitives in their hierarchy). Stateful submodules
-are still invalidated at `tick_commit()` for correctness.
-
-This optimization is enabled by default. To disable it for differential
-performance checks:
-
-```bash
-clang++ ... -DPYC_DISABLE_INSTANCE_EVAL_CACHE ...
-```
-
-### 2.4 Literal DSL (V3)
-
-V3 design code removes the old const-helper authoring style. Use:
-
-- plain Python literals where context infers type/width (`0`, `0xFF`, `0b1010`)
-- explicit helpers when width/sign must be pinned:
-  - `u(width, value)` / `s(width, value)`
-  - `U(value)` / `S(value)`
-
-Example:
-
-```python
-from pycircuit import Circuit, u
-
-def build(m: Circuit) -> None:
-    x = m.input("x", width=32)
-    y = x + u(32, 5)
-    m.output("y", y)
-```
-
-### 2.5 Components (`@component`)
-
-Use class-based parametric components for reusable modules:
-
-```python
-from pycircuit import Circuit, component
-
-@component
-class Add1:
-    width: int = 8
-    def build(self, m: Circuit, x):
-        return (x + 1)[0:self.width]
-
-def build(m: Circuit) -> None:
-    x = m.input("x", width=8)
-    y = Add1(width=8)(m, x=x)
-    m.output("y", y)
-```
-
-### 2.6 Native `match/case`
-
-JIT supports Python `match` with literal cases and `_` default. Hardware subjects lower to compare-chain control logic.
-This requires Python 3.10+ syntax support in the frontend runtime.
-
-```python
-match op:
-    case 0:
-        y = a + b
-    case 1:
-        y = a - b
-    case _:
-        y = a ^ b
-```
-
-FPGA-first Verilog emission enables inference-friendly attributes in primitives:
-
-```bash
-pyc-compile design.pyc --emit=verilog --target=fpga -o out.v
-```
-
-### 2.7 Assertions (simulation-only)
-
-In JIT-compiled design code, Python `assert` is supported and lowers to a
-simulation-only `pyc.assert` op:
-
-```python
-assert in_ready, "in_ready must be high"
-```
-
-Notes:
-
-- The assertion condition must be an `i1` `Wire`.
-- Assertions are emitted under `ifndef SYNTHESIS` in Verilog, and as runtime
-  checks in the C++ model.
-- In non-JIT (elaboration) designs, use `m.assert_(cond, msg="...")` instead of
-  Python `assert`, since `Wire` cannot be used as a Python boolean.
-
-### 2.8 Testbench generation: `pycircuit testgen` (C++ + SV/SVA)
-
-A single Python file can define both the design and a small cycle-based
-testbench:
-
-```python
-from pycircuit import Circuit, Tb, sva
-
-def build(m: Circuit) -> None:
-    ...
-
-def tb(t: Tb) -> None:
-    t.clock("clk")
-    t.reset("rst")
-    t.random("in_data", seed=1)
-    t.drive("in_valid", True, at=0)
-    t.expect("out_valid", True, at=3)
-    t.sva_assert(sva.rose("in_valid"), clock="clk", reset="rst", name="in_valid_rose")
-    t.finish(at=10)
-
-### 2.9 DFX probe helpers (pipeview)
-
-For stage/lane-heavy tracing, prefer grouped helpers instead of many manual `debug(...)` calls:
-
-```python
-m.debug_bundle("lsu", {"valid": v, "rob": rob_idx, "pc": pc})
-m.debug_probe("e1", 0, {"valid": v, "uop_uid": uid, "pc": pc, "rob": rob_idx, "kind": kind, "parent_uid": puid})
-m.debug_occ("iq", 1, {"valid": iq_v, "uop_uid": iq_uid, "pc": iq_pc, "rob": iq_rob, "stall": iq_stall, "stall_cause": iq_stall_cause})
-```
-
-These are additive wrappers over `Circuit.debug(...)` and keep legacy behavior unchanged.
-```
-
-Generate split RTL plus C++/SystemVerilog testbenches:
-
-```bash
-PYTHONPATH=compiler/frontend python3 -m pycircuit.cli testgen path/to/design.py --out-dir out/
-```
-
-This emits:
-
-- `out/*.v` (+ `out/pyc_primitives.v`) and `out/manifest.json`
-- `out/*.hpp`
-- `out/tb_<Top>.cpp`
-- `out/tb_<Top>.sv` (includes SVA assertions; skipped in `--sim-mode=cpp-only`)
-- `out/compile_stats.json` (Reg/Mem + depth/WNS/TNS stats from `pyc-compile`)
-
----
-
-## 3) Types, widths, and “inference”
-
-### 3.1 Where widths are required today
-
-You must still provide widths for:
-
-- module ports: `m.input("x", width=...)`
-- state: `m.out("r", width=..., ...)`
-- any manually created wires: `m.new_wire(width=...)`
-
-### 3.2 What is inferred/automatic
-
-The frontend tries to remove common “cast noise”:
-
-- **Binary ops auto-promote width**: `a + b` zero-extends the smaller operand
-  to the larger width (unsigned semantics).
-- **Assignment auto-resizes**:
-  - assigning a narrower integer into a wider destination inserts `zext`
-  - assigning a wider integer into a narrower destination inserts `trunc`
-- **`if` merges auto-default**:
-  - if a variable is only assigned in one branch, the other branch keeps the
-    previous value (if pre-defined) or defaults to `0`.
-
-For explicit signed behavior, mark values with `.as_signed()` (or signed ports)
-and use normal operators. Explicit cast helpers (`trunc`/`zext`/`sext`) are
-removed from design-facing APIs; narrowing should be done with slicing when
-required.
-
----
-
-## 4) Operators and common patterns
-
-### 4.1 Bit slicing / indexing
-
-`Wire` supports Verilog-like slicing:
-
-- `x[0]` → 1-bit slice
-- `x[4:8]` → bits `[7:4]` as a packed wire (lsb=4, width=4)
-
-### 4.2 Shift operators (`<<`, `>>`)
-
-- `x << 3` is a constant left shift.
-- `x >> 2` is a constant right shift:
-  - logical (zero-fill) by default
-  - arithmetic (sign-fill) if `x` is marked signed
-- Use `x.ashr(amount=...)` for arithmetic right shift (sign-fill).
-
-### 4.3 Comparisons in JIT code
-
-Inside JIT-compiled code, these compile to `i1` wires:
-
-- `==`, `!=`
-- `<`, `<=`, `>`, `>=` (respects signed intent: if either operand is signed, lowers to signed compare)
-
-In helper functions executed at JIT time (plain Python), keep using operator
-syntax (`==`, `<`, etc). For explicit unsigned compares, use:
-
-- `x.ult(y)`, `x.ule(y)`, `x.ugt(y)`, `x.uge(y)`
-
-### 4.4 Concatenation (packed buses)
-
-Python cannot overload `{a, b, c}` syntax, but pyCircuit supports these forms:
-
-```python
-from pycircuit import cat
-
-bus0 = cat(a, b, c)   # MSB-first (Verilog-style)
-bus1 = m.cat(a, b, c) # same, using the Circuit builder
-```
-
-Under the hood this lowers to `pyc.concat`, so the Verilog backend emits a readable
-`{a, b, c}` packed concatenation instead of shift/or glue logic.
-
-You can unpack with slices or via `Bundle`/`Vec` helpers (next sections).
-
----
-
-## 5) Containers: Vec and Bundle
-
-### 5.1 `Vec` (fixed-length list of lanes)
-
-Use `Vec` when you want arrays of wires/regs (pipelines, regfiles):
-
-```python
-v = m.vec(a, b, c)     # Vec
-bus = v.pack()         # packed concat
-v2 = v.unpack(bus)     # reverse
-```
-
-### 5.2 `Bundle` (named fields)
-
-`Bundle` is a tiny named container (like a Verilog struct):
-
-```python
-pkt = m.bundle(tag=tag, data=data, lo8=data[0:8])
-bus = pkt.pack()
-pkt2 = pkt.unpack(bus)
-
-m.output("tag", pkt2["tag"])
-```
-
----
-
-## 6) Ready/valid streaming: FIFO + Queue wrapper
-
-### 6.1 FIFO primitive (`pyc.fifo`)
-
-Handshake is strict:
-
-- push when `in_valid && in_ready`
-- pop when `out_valid && out_ready`
-
-### 6.2 Queue API (Python wrapper)
-
-The frontend provides a small “event-ish” wrapper:
-
-```python
-q = m.queue("q", domain=dom, width=32, depth=2)
-q.push(in_data, when=in_valid)
-p = q.pop(when=out_ready)
-
-m.output("in_ready", q.in_ready)
-m.output("out_valid", p.valid)
-m.output("out_data", p.data)
-```
-
-Limitations (prototype): one `push()` and one `pop()` call per `Queue` instance.
-
----
-
-## 7) Memory
-
-`pyc.byte_mem` models a byte-addressed memory (prototype):
-
-- async read (combinational)
-- sync write on clock edge (byte strobes)
-
-See `designs/examples/linx_cpu_pyc/memory.py` and `designs/examples/linx_cpu_pyc/linx_cpu_pyc.py`.
-
----
-
-## 8) Multi-file designs: auto-instance vs `@jit_inline`
-
-If you split a design into multiple Python files, module-like calls are
-instance calls by default. Mark helper functions with `@jit_inline` when they
-must compile into the caller body.
-
-This preserves consistent name mangling:
-
-- scope prefixes (`with m.scope("WB")`)
-- file stem + line number (`__decode__L55`, etc)
-
----
-
-## 9) Debugging and traceability
-
-### 9.1 Name mangling and generated readability
-
-- Use `with m.scope("NAME"):` to group signals by stage/module.
-- Assigning to a Python variable in JIT code usually creates a `pyc.alias`
-  with a stable name that includes `file:line`.
-
-Generated Verilog/C++ tries to keep readable identifiers:
-
-- If a value has a `pyc.name`, it becomes the identifier.
-- Otherwise, the emitter falls back to op-based names (e.g. `pyc_add_123`).
-
-### 9.2 C++ tracing (linx CPU)
-
-`designs/examples/linx_cpu_pyc/tb_linx_cpu_pyc.cpp` supports:
-
-- `PYC_TRACE=1` → instruction-level log (default under `.pycircuit_out/examples/linx_cpu_pyc/`)
-- `PYC_VCD=1` → VCD waveform dump (same folder)
-
-### 9.3 SV tracing
-
-`designs/examples/linx_cpu/tb_linx_cpu_pyc.sv` supports:
-
-- VCD dump by default (disable with `+notrace`)
-- log file by default (disable with `+nolog`)
-- output paths override: `+vcd=<path>` / `+log=<path>`
-
-For running the generated Verilog through open-source tools (Icarus/Verilator/GTKWave),
-see `docs/VERILOG_FLOW.md`.
-
-### 9.4 C++ simulator performance controls
-
-Generated C++ models expose additive runtime controls:
-
-- `PYC_SIM_STATS=1` enables internal eval/cache counters.
-- `PYC_SIM_STATS_PATH=<path>` writes counters to a file.
-- `PYC_SIM_FAST=1` enables fast scheduling path in fallback netlists
-  (fidelity mode remains default with `PYC_SIM_FAST=0`).
-
-Compile-time bisect flags:
-
-- `-DPYC_DISABLE_INSTANCE_EVAL_CACHE`
-- `-DPYC_DISABLE_PRIMITIVE_EVAL_CACHE`
-- `-DPYC_DISABLE_SCC_WORKLIST_EVAL`
-- `-DPYC_DISABLE_VERSIONED_INPUT_CACHE`
-
----
-
-## 10) What’s still missing / recommended next ops
-
-The prototype already includes the “baseline bring-up set” (cmp/shift/mul-div/rem,
-mem ports, async FIFO + CDC sync). The most useful missing pieces for scaling up
-to serious designs are now less about single ops and more about structure:
-
-1. **Hierarchical modules / instantiation**
-   - preserve boundaries in IR and optionally in emission (readability + reuse)
-2. **Interfaces**
-   - first-class ready/valid “stream” bundles; better type-checking for handshakes
-3. **More memory variants**
-   - true dual-port (2R2W), write-first/read-first policies, per-port clocks
-4. **Variable shifts**
-   - `shl`, `lshr`, `ashr` by a *value* (not only immediates)
-5. **Better diagnostics**
-   - error messages that always include `file:line` and the current `scope()`

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pycircuit import Circuit, compile_design, u
+from pycircuit import Circuit, compile, module, u
 
 
+@module
 def build(m: Circuit, rounds: int = 4) -> None:
     a = m.input("a", width=8)
     b = m.input("b", width=8)
@@ -25,4 +26,4 @@ def build(m: Circuit, rounds: int = 4) -> None:
 
 
 if __name__ == "__main__":
-    print(compile_design(build, name="jit_control_flow", rounds=4).emit_mlir())
+    print(compile(build, name="jit_control_flow", rounds=4).emit_mlir())

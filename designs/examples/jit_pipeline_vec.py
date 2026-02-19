@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from pycircuit import Circuit, compile_design, u
+from pycircuit import Circuit, compile, module, u
 
 
+@module
 def build(m: Circuit, stages: int = 3) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
@@ -28,4 +29,4 @@ def build(m: Circuit, stages: int = 3) -> None:
 
 
 if __name__ == "__main__":
-    print(compile_design(build, name="jit_pipeline_vec", stages=3).emit_mlir())
+    print(compile(build, name="jit_pipeline_vec", stages=3).emit_mlir())

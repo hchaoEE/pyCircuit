@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib
 import importlib.util
 import inspect
 import os
@@ -10,9 +11,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from .api_contract import collect_local_python_graph, nearest_project_root, scan_file
+from .diagnostics import render_diagnostic
 from .dsl import Module
 from .design import Design, DesignError
-from .jit import compile_design
+from .jit import JitError, compile
 from .tb import Tb, TbError, _sanitize_id
 
 
@@ -34,79 +37,95 @@ def _load_py_file(path: Path) -> object:
     return m
 
 
+def _resolve_emit_source(src_arg: str) -> tuple[Path | None, object]:
+    if "." in src_arg and not Path(src_arg).exists():
+        spec = importlib.util.find_spec(src_arg)
+        src: Path | None = None
+        if spec is not None and isinstance(spec.origin, str) and spec.origin.endswith(".py"):
+            src = Path(spec.origin).resolve()
+        mod = importlib.import_module(src_arg)
+        return src, mod
+    src = Path(src_arg).resolve()
+    return src, _load_py_file(src)
+
+
+def _scan_api_contract(entry: Path, *, project_root_override: str | None = None) -> None:
+    if not entry.is_file():
+        return
+    root = Path(project_root_override).resolve() if project_root_override else nearest_project_root(entry)
+    files = collect_local_python_graph(entry.resolve(), project_root=root)
+    diags = []
+    for f in files:
+        diags.extend(scan_file(f, stage="api-contract"))
+    if not diags:
+        return
+    for d in diags:
+        print(render_diagnostic(d), file=sys.stderr)
+    raise SystemExit(f"api contract check failed: {len(diags)} violation(s)")
+
+
 def _cmd_emit(args: argparse.Namespace) -> int:
     src_arg = args.python_file
     out = Path(args.output)
-    # If argument looks like a module name (contains dot), import it (supports relative imports).
-    if "." in src_arg and not Path(src_arg).exists():
-        mod = importlib.import_module(src_arg)
-        src = Path(src_arg.replace(".", "/") + ".py")  # for _default_top_name
-    else:
-        src = Path(src_arg)
-        mod = _load_py_file(src)
+    src, mod = _resolve_emit_source(src_arg)
+    if src is not None:
+        _scan_api_contract(src, project_root_override=args.project_root)
     if not hasattr(mod, "build"):
-        raise SystemExit(f"{src_arg} must define build() -> pycircuit.Module")
+        raise SystemExit(f"{src_arg} must define a v3 entrypoint: `@module def build(m: Circuit, ...)`")
     build = getattr(mod, "build")
 
-    # JIT-by-default behavior:
-    # - If `build` is a function that accepts a builder arg (e.g. `build(m: Circuit, ...)`),
-    #   compile it via the AST/JIT frontend using default parameter values.
-    # - Otherwise, call it normally and expect a `Module` result (legacy path).
-    if callable(build):
-        sig = inspect.signature(build)
-        params = list(sig.parameters.values())
-        if params:
-            # Collect JIT-time parameters from defaults.
-            jit_params: dict[str, object] = {}
-            missing: list[str] = []
-            for p in params[1:]:
-                if p.default is inspect._empty:
-                    missing.append(p.name)
-                else:
-                    jit_params[p.name] = p.default
-            if missing:
-                raise SystemExit(
-                    f"build() is treated as a JIT design function but missing default values for: {', '.join(missing)}"
-                )
+    if not callable(build):
+        raise SystemExit("build must be a callable @module entrypoint: `def build(m: Circuit, ...)`")
 
-            # Apply CLI overrides.
-            for spec in args.param:
-                if "=" not in spec:
-                    raise SystemExit(f"--param expects name=value, got: {spec!r}")
-                name, raw = spec.split("=", 1)
-                name = name.strip()
-                raw = raw.strip()
-                if not name:
-                    raise SystemExit(f"--param expects name=value, got: {spec!r}")
-                if name not in jit_params:
-                    raise SystemExit(f"unknown JIT parameter: {name!r} (available: {', '.join(jit_params.keys())})")
-                try:
-                    val = ast.literal_eval(raw)
-                except Exception:
-                    val = raw
-                jit_params[name] = val
+    sig = inspect.signature(build)
+    params = list(sig.parameters.values())
+    if not params:
+        raise SystemExit("build must use v3 JIT entry semantics: `@module def build(m: Circuit, ...)`")
 
-            name = _default_top_name(src)
-            override = getattr(build, "__pycircuit_name__", None)
-            if isinstance(override, str) and override.strip():
-                name = override.strip()
-            try:
-                m = compile_design(build, name=name, **jit_params)
-            except DesignError as e:
-                raise SystemExit(f"design compile failed: {e}") from e
+    # Collect JIT-time parameters from defaults.
+    jit_params: dict[str, object] = {}
+    missing: list[str] = []
+    for p in params[1:]:
+        if p.default is inspect._empty:
+            missing.append(p.name)
         else:
-            m = build()
-    else:
-        m = build
+            jit_params[p.name] = p.default
+    if missing:
+        raise SystemExit(
+            f"build() is treated as a JIT design function but missing default values for: {', '.join(missing)}"
+        )
 
-    if isinstance(m, Module):
-        out.write_text(m.emit_mlir(), encoding="utf-8")
-        return 0
-    if isinstance(m, Design):
-        out.write_text(m.emit_mlir(), encoding="utf-8")
+    # Apply CLI overrides.
+    for spec in args.param:
+        if "=" not in spec:
+            raise SystemExit(f"--param expects name=value, got: {spec!r}")
+        name, raw = spec.split("=", 1)
+        name = name.strip()
+        raw = raw.strip()
+        if not name:
+            raise SystemExit(f"--param expects name=value, got: {spec!r}")
+        if name not in jit_params:
+            raise SystemExit(f"unknown JIT parameter: {name!r} (available: {', '.join(jit_params.keys())})")
+        try:
+            val = ast.literal_eval(raw)
+        except Exception:
+            val = raw
+        jit_params[name] = val
+
+    top_name = _default_top_name(src if src is not None else Path(src_arg.replace(".", "/") + ".py"))
+    override = getattr(build, "__pycircuit_name__", None)
+    if isinstance(override, str) and override.strip():
+        top_name = override.strip()
+    try:
+        design = compile(build, name=top_name, **jit_params)
+    except (DesignError, JitError) as e:
+        raise SystemExit(f"design compile failed: {e}") from e
+
+    if isinstance(design, Design):
+        out.write_text(design.emit_mlir(), encoding="utf-8")
         return 0
 
-    raise SystemExit("build must be a pycircuit.Module, a build() -> Module function, or a JIT build(m, ...) function")
+    raise SystemExit("internal error: compile did not return a Design")
     return 0
 
 
@@ -146,54 +165,55 @@ def _as_int_width(ty: str) -> int:
 
 def _collect_build(mod: object, src: Path, args: argparse.Namespace) -> Module | Design:
     if not hasattr(mod, "build"):
-        raise SystemExit(f"{src} must define build() -> pycircuit.Module")
+        raise SystemExit(f"{src} must define a v3 entrypoint: `@module def build(m: Circuit, ...)`")
     build = getattr(mod, "build")
 
-    if callable(build):
-        sig = inspect.signature(build)
-        params = list(sig.parameters.values())
-        if params:
-            # Collect JIT-time parameters from defaults.
-            jit_params: dict[str, object] = {}
-            missing: list[str] = []
-            for p in params[1:]:
-                if p.default is inspect._empty:
-                    missing.append(p.name)
-                else:
-                    jit_params[p.name] = p.default
-            if missing:
-                raise SystemExit(
-                    f"build() is treated as a JIT design function but missing default values for: {', '.join(missing)}"
-                )
+    if not callable(build):
+        raise SystemExit("build must be a callable @module entrypoint: `def build(m: Circuit, ...)`")
 
-            # Apply CLI overrides.
-            for spec in args.param:
-                if "=" not in spec:
-                    raise SystemExit(f"--param expects name=value, got: {spec!r}")
-                name, raw = spec.split("=", 1)
-                name = name.strip()
-                raw = raw.strip()
-                if not name:
-                    raise SystemExit(f"--param expects name=value, got: {spec!r}")
-                if name not in jit_params:
-                    raise SystemExit(f"unknown JIT parameter: {name!r} (available: {', '.join(jit_params.keys())})")
-                try:
-                    val = ast.literal_eval(raw)
-                except Exception:
-                    val = raw
-                jit_params[name] = val
+    sig = inspect.signature(build)
+    params = list(sig.parameters.values())
+    if not params:
+        raise SystemExit("build must use v3 JIT entry semantics: `@module def build(m: Circuit, ...)`")
 
-            name = _default_top_name(src)
-            override = getattr(build, "__pycircuit_name__", None)
-            if isinstance(override, str) and override.strip():
-                name = override.strip()
-            try:
-                return compile_design(build, name=name, **jit_params)
-            except DesignError as e:
-                raise SystemExit(f"design compile failed: {e}") from e
-        return build()
+    # Collect JIT-time parameters from defaults.
+    jit_params: dict[str, object] = {}
+    missing: list[str] = []
+    for p in params[1:]:
+        if p.default is inspect._empty:
+            missing.append(p.name)
+        else:
+            jit_params[p.name] = p.default
+    if missing:
+        raise SystemExit(
+            f"build() is treated as a JIT design function but missing default values for: {', '.join(missing)}"
+        )
 
-    return build
+    # Apply CLI overrides.
+    for spec in args.param:
+        if "=" not in spec:
+            raise SystemExit(f"--param expects name=value, got: {spec!r}")
+        name, raw = spec.split("=", 1)
+        name = name.strip()
+        raw = raw.strip()
+        if not name:
+            raise SystemExit(f"--param expects name=value, got: {spec!r}")
+        if name not in jit_params:
+            raise SystemExit(f"unknown JIT parameter: {name!r} (available: {', '.join(jit_params.keys())})")
+        try:
+            val = ast.literal_eval(raw)
+        except Exception:
+            val = raw
+        jit_params[name] = val
+
+    top_name = _default_top_name(src)
+    override = getattr(build, "__pycircuit_name__", None)
+    if isinstance(override, str) and override.strip():
+        top_name = override.strip()
+    try:
+        return compile(build, name=top_name, **jit_params)
+    except (DesignError, JitError) as e:
+        raise SystemExit(f"design compile failed: {e}") from e
 
 
 class _TopIface:
@@ -605,10 +625,11 @@ def _render_tb_sv(iface: _TopIface, t: Tb) -> str:
 
 
 def _cmd_testgen(args: argparse.Namespace) -> int:
-    src = Path(args.python_file)
+    src = Path(args.python_file).resolve()
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    _scan_api_contract(src, project_root_override=args.project_root)
     mod = _load_py_file(src)
     design = _collect_build(mod, src, args)
     iface = _top_iface(design)
@@ -654,7 +675,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     emit = sub.add_parser("emit", help="Emit PYC MLIR (*.pyc) from a Python design file.")
-    emit.add_argument("python_file", help="Python source defining build() -> pycircuit.Module")
+    emit.add_argument("python_file", help="Python source defining `@module def build(m: Circuit, ...)`")
     emit.add_argument("-o", "--output", required=True, help="Output .pyc path")
     emit.add_argument(
         "--param",
@@ -662,16 +683,26 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         help="Override a JIT parameter (repeatable): name=value (parsed as a Python literal when possible)",
     )
+    emit.add_argument(
+        "--project-root",
+        default=None,
+        help="Optional project root for strict API contract scan (defaults to nearest .git/pyproject.toml).",
+    )
     emit.set_defaults(fn=_cmd_emit)
 
     testgen = sub.add_parser("testgen", help="Generate per-module RTL + C++/SV testbench from a Python design file.")
-    testgen.add_argument("python_file", help="Python source defining build() and tb(t: Tb)")
+    testgen.add_argument("python_file", help="Python source defining `@module build(...)` and tb(t: Tb)")
     testgen.add_argument("--out-dir", required=True, help="Output directory for RTL + testbench sources")
     testgen.add_argument(
         "--param",
         action="append",
         default=[],
         help="Override a JIT parameter (repeatable): name=value (parsed as a Python literal when possible)",
+    )
+    testgen.add_argument(
+        "--project-root",
+        default=None,
+        help="Optional project root for strict API contract scan (defaults to nearest .git/pyproject.toml).",
     )
     testgen.add_argument(
         "--sim-mode",

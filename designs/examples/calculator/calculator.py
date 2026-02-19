@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pycircuit import Circuit, compile_design, unsigned, u
+from pycircuit import Circuit, compile, module, unsigned, u
 
 KEY_ADD = 10
 KEY_SUB = 11
@@ -15,6 +15,7 @@ OP_MUL = 2
 OP_DIV = 3
 
 
+@module
 def build(m: Circuit) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
@@ -91,4 +92,4 @@ def build(m: Circuit) -> None:
 
 
 if __name__ == "__main__":
-    print(compile_design(build, name="calculator").emit_mlir())
+    print(compile(build, name="calculator").emit_mlir())
