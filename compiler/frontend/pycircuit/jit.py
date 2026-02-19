@@ -533,6 +533,8 @@ class _Compiler:
             self.env[target.id] = self._alias_if_wire(value, base_name=target.id, node=node)
             return
         if isinstance(target, (ast.Tuple, ast.List)):
+            if isinstance(value, Vec):
+                value = list(value.elems)
             if not isinstance(value, (tuple, list)):
                 raise JitError("tuple/list assignment requires tuple/list values")
             if len(value) != len(target.elts):
@@ -559,6 +561,15 @@ class _Compiler:
             if isinstance(v, LiteralValue):
                 return int(v.value)
             raise JitError(f"const-eval name {node.id!r} is not an int/bool/literal")
+        if isinstance(node, ast.Attribute):
+            v = self.eval_expr(node)
+            if isinstance(v, bool):
+                return int(v)
+            if isinstance(v, int):
+                return int(v)
+            if isinstance(v, LiteralValue):
+                return int(v.value)
+            raise JitError(f"const-eval attribute {ast.unparse(node)!r} is not an int/bool/literal")
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
             return -self.eval_const(node.operand)
         if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.UAdd):
@@ -678,6 +689,18 @@ class _Compiler:
             if elts and all(isinstance(e, (Wire, Reg)) for e in elts):
                 return Vec(tuple(elts))
             return tuple(elts)
+        if isinstance(node, ast.Dict):
+            out: dict[Any, Any] = {}
+            for k_node, v_node in zip(node.keys, node.values):
+                if k_node is None:
+                    raise JitError("dict unpacking is not supported in JIT expressions")
+                k = self.eval_expr(k_node)
+                try:
+                    hash(k)
+                except Exception as e:  # noqa: BLE001
+                    raise JitError(f"dict key must be hashable, got {type(k).__name__}") from e
+                out[k] = self.eval_expr(v_node)
+            return out
         if isinstance(node, ast.Name):
             if node.id in self.env:
                 v = self.env[node.id]
@@ -737,6 +760,12 @@ class _Compiler:
                     return lhs + rhs
                 if isinstance(rhs, (Wire, Reg)):
                     return rhs + lhs
+                if isinstance(lhs, list) and isinstance(rhs, list):
+                    return lhs + rhs
+                if isinstance(lhs, tuple) and isinstance(rhs, tuple):
+                    return lhs + rhs
+                if isinstance(lhs, Vec) and isinstance(rhs, Vec):
+                    return Vec((*lhs.elems, *rhs.elems))
                 return _as_py_int(lhs) + _as_py_int(rhs)
             if isinstance(node.op, ast.Sub):
                 if isinstance(lhs, (Wire, Reg)):

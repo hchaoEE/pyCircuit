@@ -68,5 +68,5 @@ print(compile_design(build, name="demo").emit_mlir())
 
 ## 7) Fresh-start policy
 
-v3+ is a hard break. Removed APIs (for example `jit_inline`, public `compile`) are not supported.
+v3+ is a hard break. Removed APIs (old inline helper decorator and public `compile`) are not supported.
 Use `/Users/zhoubot/pyCircuit/flows/tools/check_api_hygiene.py` to enforce source/docs hygiene.

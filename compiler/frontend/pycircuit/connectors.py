@@ -21,8 +21,112 @@ class Connector:
     def read(self) -> Any:
         raise NotImplementedError
 
+    def out(self) -> Any:
+        """Read connector payload as a value suitable for expressions."""
+        value = self.read()
+        if hasattr(value, "out"):
+            return value.out()
+        return value
 
-@dataclass(frozen=True)
+    def __bool__(self) -> bool:
+        raise TypeError(
+            "Connector cannot be used as a Python boolean. "
+            "Use hardware comparisons/selects and keep conditions as i1 values."
+        )
+
+    @property
+    def width(self) -> int:
+        return int(getattr(self.out(), "width"))
+
+    def __getitem__(self, idx: Any) -> Any:
+        return self.out()[idx]
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.out(), name)
+
+    def __add__(self, other: Any) -> Any:
+        return self.out() + other
+
+    def __radd__(self, other: Any) -> Any:
+        return other + self.out()
+
+    def __sub__(self, other: Any) -> Any:
+        return self.out() - other
+
+    def __rsub__(self, other: Any) -> Any:
+        return other - self.out()
+
+    def __mul__(self, other: Any) -> Any:
+        return self.out() * other
+
+    def __rmul__(self, other: Any) -> Any:
+        return other * self.out()
+
+    def __floordiv__(self, other: Any) -> Any:
+        return self.out() // other
+
+    def __rfloordiv__(self, other: Any) -> Any:
+        return other // self.out()
+
+    def __truediv__(self, other: Any) -> Any:
+        return self.out() / other
+
+    def __rtruediv__(self, other: Any) -> Any:
+        return other / self.out()
+
+    def __mod__(self, other: Any) -> Any:
+        return self.out() % other
+
+    def __rmod__(self, other: Any) -> Any:
+        return other % self.out()
+
+    def __and__(self, other: Any) -> Any:
+        return self.out() & other
+
+    def __rand__(self, other: Any) -> Any:
+        return other & self.out()
+
+    def __or__(self, other: Any) -> Any:
+        return self.out() | other
+
+    def __ror__(self, other: Any) -> Any:
+        return other | self.out()
+
+    def __xor__(self, other: Any) -> Any:
+        return self.out() ^ other
+
+    def __rxor__(self, other: Any) -> Any:
+        return other ^ self.out()
+
+    def __invert__(self) -> Any:
+        return ~self.out()
+
+    def __lshift__(self, other: Any) -> Any:
+        return self.out() << other
+
+    def __rshift__(self, other: Any) -> Any:
+        return self.out() >> other
+
+    def __eq__(self, other: object) -> Any:  # type: ignore[override]
+        return self.out() == other
+
+    def __ne__(self, other: object) -> Any:  # type: ignore[override]
+        return self.out() != other
+
+    def __lt__(self, other: Any) -> Any:
+        return self.out() < other
+
+    def __gt__(self, other: Any) -> Any:
+        return self.out() > other
+
+    def __le__(self, other: Any) -> Any:
+        return self.out() <= other
+
+    def __ge__(self, other: Any) -> Any:
+        return self.out() >= other
+
+
+@dataclass(frozen=True, eq=False)
 class WireConnector(Connector):
     owner: Any
     name: str
@@ -47,7 +151,7 @@ class WireConnector(Connector):
         return self.wire
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class RegConnector(Connector):
     owner: Any
     name: str

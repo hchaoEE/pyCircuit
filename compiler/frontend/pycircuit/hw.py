@@ -225,13 +225,13 @@ class Wire:
         return self.lshr(amount=int(other))
 
     def __eq__(self, other: object) -> "Wire":  # type: ignore[override]
-        if not isinstance(other, (Wire, Reg, Signal, int, LiteralValue)):
+        if not isinstance(other, (Wire, Reg, Signal, Connector, int, LiteralValue)):
             return NotImplemented
         a, b = self._promote2(other)
         return Wire(self.m, self.m.eq(a.sig, b.sig))
 
     def __ne__(self, other: object) -> "Wire":  # type: ignore[override]
-        if not isinstance(other, (Wire, Reg, Signal, int, LiteralValue)):
+        if not isinstance(other, (Wire, Reg, Signal, Connector, int, LiteralValue)):
             return NotImplemented
         return ~(self == other)
 
@@ -1128,6 +1128,25 @@ class Circuit(Module):
             params=params,
             module_name=module_name,
             **ports,
+        )
+
+    def instance_auto(
+        self,
+        fn: Any,
+        *,
+        name: str,
+        params: dict[str, Any] | None = None,
+        module_name: str | None = None,
+        **ports: Any,
+    ) -> Connector | ConnectorBundle:
+        """Instantiate a module while auto-wrapping port values as connectors."""
+        wrapped = {str(k): self.as_connector(v, name=str(k)) for k, v in ports.items()}
+        return self.instance(
+            fn,
+            name=str(name),
+            params=params,
+            module_name=module_name,
+            **wrapped,
         )
 
     def _coerce_instance_connector(self, v: Any, *, port: str) -> Connector:

@@ -35,6 +35,6 @@ This guide defines the v3.2 migration direction for a parameterized LinxCore fro
 
 ## Hygiene gates
 
-- No `jit_inline` usage in migrated paths.
+- No old inline-helper decorator usage in migrated paths.
 - No removed method-style frontend APIs in migrated paths.
 - Deterministic compile outputs for identical parameter sets.
