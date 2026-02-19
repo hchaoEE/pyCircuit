@@ -174,7 +174,16 @@ fi
 
 PYC_LOGIC_DEPTH="${PYC_LOGIC_DEPTH:-1024}"
 SIM_MODE="cpp-only"
-BUILD_KEY="logic_depth=${PYC_LOGIC_DEPTH};sim_mode=${SIM_MODE};mem_bytes=${PYC_MEM_BYTES:-default}"
+PYC_COMPILE_HELP="$("${PYC_COMPILE}" --help 2>&1 || true)"
+PYC_SUPPORTS_SIM_MODE=0
+PYC_SUPPORTS_LOGIC_DEPTH=0
+if grep -q -- "--sim-mode" <<<"${PYC_COMPILE_HELP}"; then
+  PYC_SUPPORTS_SIM_MODE=1
+fi
+if grep -q -- "--logic-depth" <<<"${PYC_COMPILE_HELP}"; then
+  PYC_SUPPORTS_LOGIC_DEPTH=1
+fi
+BUILD_KEY="logic_depth=${PYC_LOGIC_DEPTH};sim_mode=${SIM_MODE};mem_bytes=${PYC_MEM_BYTES:-default};sim_mode_flag=${PYC_SUPPORTS_SIM_MODE};logic_depth_flag=${PYC_SUPPORTS_LOGIC_DEPTH}"
 
 need_regen=0
 if [[ ! -f "${HDR}" || ! -f "${KEY_FILE}" ]]; then
@@ -190,8 +199,15 @@ if [[ "${need_regen}" -ne 0 ]]; then
     python3 -m pycircuit.cli emit ${EMIT_PARAMS[@]+"${EMIT_PARAMS[@]}"} \
     designs/examples/linx_cpu_pyc/linx_cpu_pyc.py -o "${PYC_PATH}"
 
-  "${PYC_COMPILE}" "${PYC_PATH}" --emit=cpp --sim-mode="${SIM_MODE}" \
-    --logic-depth "${PYC_LOGIC_DEPTH}" -o "${HDR}"
+  PYC_COMPILE_ARGS=("${PYC_COMPILE}" "${PYC_PATH}" --emit=cpp)
+  if [[ "${PYC_SUPPORTS_SIM_MODE}" -eq 1 ]]; then
+    PYC_COMPILE_ARGS+=(--sim-mode="${SIM_MODE}")
+  fi
+  if [[ "${PYC_SUPPORTS_LOGIC_DEPTH}" -eq 1 ]]; then
+    PYC_COMPILE_ARGS+=(--logic-depth "${PYC_LOGIC_DEPTH}")
+  fi
+  PYC_COMPILE_ARGS+=(-o "${HDR}")
+  "${PYC_COMPILE_ARGS[@]}"
   printf '%s\n' "${BUILD_KEY}" > "${KEY_FILE}"
 fi
 
@@ -223,6 +239,12 @@ fi
 
 if [[ "${need_build}" -ne 0 ]]; then
   EXTRA_INC=()
+  COMPAT_INC_DIR="${GEN_DIR}/include_compat"
+  mkdir -p "${COMPAT_INC_DIR}" "${COMPAT_INC_DIR}/pyc"
+  ln -sfn "${ROOT_DIR}/runtime/cpp" "${COMPAT_INC_DIR}/cpp"
+  ln -sfn "${ROOT_DIR}/runtime/cpp" "${COMPAT_INC_DIR}/pyc/cpp"
+  EXTRA_INC+=( -I "${COMPAT_INC_DIR}" )
+
   if [[ -d "${ROOT_DIR}/include/pyc" ]]; then
     # Compatibility path for generators that include <cpp/...> headers.
     EXTRA_INC+=( -I "${ROOT_DIR}/include/pyc" )
