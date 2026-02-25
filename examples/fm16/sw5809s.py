@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from pycircuit import (
     CycleAwareCircuit, CycleAwareDomain, CycleAwareSignal,
+
+    
     compile_cycle_aware, mux,
 )
 
