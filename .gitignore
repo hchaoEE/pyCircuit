@@ -18,6 +18,7 @@ __pycache__/
 .Python
 build/
 build-*/
+compiler/mlir/build*/
 develop-eggs/
 dist/
 downloads/
@@ -63,6 +64,12 @@ cover/
 # Translations
 *.mo
 *.pot
+
+# Vivado (repo root invocations)
+vivado*.log
+vivado*.jou
+dfx_runtime.txt
+.Xil/
 
 # Django stuff:
 *.log
@@ -221,8 +228,11 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Verilog tool build outputs
-examples/generated/**/verilator/
-
-# Janus generated outputs (pyc-compile, verilator builds, benchmark artifacts)
-janus/generated/
+# pyCircuit generated outputs (local artifacts only; never checked in)
+.pycircuit_out/
+examples/
+janus/
+**/generated/
+designs/**/generated/
+designs/examples/generated/**/verilator/
+designs/janus/generated/

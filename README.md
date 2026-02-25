@@ -1,220 +1,193 @@
 # pyCircuit
 
-`pyCircuit` is a Python-first hardware construction + compilation toolkit built around a small MLIR dialect (**PYC**).
-You write *sequential-looking* Python; the frontend emits `.pyc` (MLIR), MLIR passes canonicalize + fuse, and `pyc-compile`
-emits either:
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/Python-3.9+--green.svg" alt="Python">
+  <img src="https://img.shields.io/badge/MLIR-17+-orange.svg" alt="MLIR">
+  <a href="https://github.com/LinxISA/pyCircuit/actions"><img src="https://github.com/LinxISA/pyCircuit/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-- **Verilog** (static RTL; strict ready/valid streaming)
-- **Header-only C++** (cycle/tick model; convenient for bring-up + debug)
+pyCircuit is a Python-based hardware description framework that compiles Python functions to synthesizable RTL through MLIR intermediate representation. Inspired by [Chisel](https://github.com/chipsalliance/chisel3) and [pyMTL](https://github.com/pymtl/pymtl3), pyCircuit provides a unique **Cycle-Aware Signal System** where every signal carries a logical clock cycle annotation, and the compiler automatically inserts pipeline registers (DFFs) when combining signals from different pipeline stages.
 
-Everything between Python and codegen stays **MLIR-only**.
+## Key Features
 
-Docs:
-- `docs/USAGE.md` (how to write designs; JIT rules; debug/tracing)
-- `docs/IR_SPEC.md` (PYC dialect contract)
-- `docs/PRIMITIVES.md` (backend template “ABI”: matching C++/Verilog primitives)
-- `docs/VERILOG_FLOW.md` (open-source Verilog sim/lint with Icarus/Verilator/GTKWave)
+- **Cycle-Aware Signal System**: Unified signal model without distinguishing between wires and registers - the compiler automatically infers hardware implementation
+- **Automatic Pipeline Balancing**: Signals from different clock cycles are automatically aligned with DFF insertion
+- **Multi-Level Abstraction**: From high-level Python to synthesizable Verilog/C++
+- **Built-in Testbench Support**: Native `@testbench` decorator for cycle-accurate simulation
+- **MLIR-Based IR**: Robust intermediate representation for hardware compilation
+- **C++/Verilog Emission**: Generate high-quality C++ for simulation or Verilog for synthesis
 
-## Design goals (why this repo exists)
+## Quick Start
 
-- **Readable Python**: build pipelines/modules with `with m.scope("STAGE"):` + normal Python operators.
-- **Static hardware only**: Python control flow lowers to MLIR `scf.*`, then into *static* mux/unrolled logic.
-- **Traceability**: stable name mangling (`scope + file:line`) so generated Verilog/C++ stays debuggable.
-- **Multi-clock from day 1**: explicit `!pyc.clock` / `!pyc.reset`.
-- **Strict ready/valid**: streaming primitives use a single interpretation everywhere.
+### Installation
 
-## Tiny example (JIT-by-default)
+```bash
+# Clone the repository
+git clone https://github.com/LinxISA/pyCircuit.git
+cd pyCircuit
 
-```python
-from pycircuit import Circuit, cat
+# Install Python dependencies
+pip install -e .
 
-def build(m: Circuit, STAGES: int = 3) -> None:
-    dom = m.domain("sys")
-
-    a = m.input("a", width=16)
-    b = m.input("b", width=16)
-    sel = m.input("sel", width=1)
-
-    with m.scope("EX"):
-        x = a ^ b
-        y = a + b
-        data = x
-        if sel:
-            data = y
-
-    pkt = m.bundle(data=data, tag=(a == b))
-    bus = pkt.pack()           # lowers to `pyc.concat`
-
-    with m.scope("PIPE0"):
-        r = m.out("bus", domain=dom, width=bus.width, init=0)
-        r.set(bus)
-
-    out = pkt.unpack(r.out())
-    m.output("out_data", out["data"])
-    m.output("out_tag", out["tag"])
+# Build the compiler (requires LLVM+MLIR)
+# See https://llvm.org/docs/GettingStarted.html for LLVM setup
+bash flows/scripts/pyc build
 ```
 
-## Cycle-Aware API (New)
-
-pyCircuit includes a new **cycle-aware** programming paradigm that tracks signal timing automatically:
+### Your First Design: 8-bit Counter
 
 ```python
-from pycircuit import compile_cycle_aware, mux
+from pycircuit import CycleAwareCircuit, CycleAwareDomain, compile_cycle_aware, mux
 
-def counter(m, domain, width=8):
-    # Cycle 0: inputs
-    enable = domain.create_signal("enable", width=1)
-    count = domain.create_const(0, width=width, name="count")
+def counter(m: CycleAwareCircuit, domain: CycleAwareDomain) -> None:
+    enable = domain.input("enable", width=1)
+    count = domain.signal("count", width=8, reset=0)
+    next_count = mux(enable, count + 1, count)
     
-    # Combinational logic
-    count_next = mux(enable, count + 1, count)
+    domain.next()  # Advance one cycle
+    count.set(next_count)
     
-    # Cycle 1: register
-    domain.next()
-    count_reg = domain.cycle(count_next, reset_value=0, name="count")
-    
-    m.output("count", count_reg.sig)
+    m.output("count", count)
 
-circuit = compile_cycle_aware(counter, name="counter", width=8)
+# Compile to MLIR
+circuit = compile_cycle_aware(counter, name="counter")
 print(circuit.emit_mlir())
 ```
 
-Key features:
-- **Automatic cycle balancing**: When combining signals of different cycles, DFFs are inserted automatically
-- **Cycle management**: `domain.next()`, `prev()`, `push()`, `pop()` for precise cycle control
-- **JIT compilation**: Python functions compile directly to MLIR
-
-See `docs/CYCLE_AWARE_API.md` for the full API reference and `examples/counter_cycle_aware.py` for more examples.
-
-## Build (pyc-compile / pyc-opt)
-
-Prereqs:
-- CMake ≥ 3.20 + Ninja
-- A C++17 compiler
-- An LLVM+MLIR build/install that provides `LLVMConfig.cmake` + `MLIRConfig.cmake`
-
-### Quickstart (recommended)
-
-If `llvm-config` is on your PATH:
+### Compile and Simulate
 
 ```bash
-scripts/pyc build
-scripts/pyc regen
-scripts/pyc test
+# Emit to MLIR
+pycircuit emit designs/examples/counter/counter.py -o counter.pyc
+
+# Compile to C++ for simulation
+pycc counter.pyc --emit=cpp -o counter_build/
+
+# Compile to Verilog for synthesis
+pycc counter.pyc --emit=verilog -o counter.v
 ```
 
-### Configure + build (recommended: top-level CMake)
+## Architecture
+
+```
+pyCircuit
+├── compiler/
+│   ├── frontend/          # Python-based frontend (pycircuit package)
+│   │   └── pycircuit/     # Core DSL and API
+│   └── mlir/              # MLIR-based compiler backend
+│       ├── lib/           # Dialect definitions and passes
+│       └── tools/         # pycc, pyc-opt compilers
+├── runtime/
+│   ├── cpp/               # C++ simulation runtime
+│   └── verilog/           # Verilog simulation primitives
+├── designs/
+│   └── examples/          # Example designs
+└── docs/                  # Documentation
+```
+
+## Documentation
+
+- [Tutorial](doc/pyCircuit_Tutorial.md) - Comprehensive guide to pyCircuit programming
+- [Quickstart](docs/QUICKSTART.md) - Build and run your first design
+- [Frontend API](docs/FRONTEND_API.md) - Python API reference
+- [IR Specification](docs/IR_SPEC.md) - MLIR dialect specification
+- [Testbench Guide](docs/TESTBENCH.md) - Writing cycle-accurate testbenches
+
+## Examples
+
+| Example | Description |
+|---------|-------------|
+| [Counter](designs/examples/counter/) | Basic counter with enable |
+| [Calculator](designs/examples/calculator/) | ALU with arithmetic operations |
+| [FIFO Loopback](designs/examples/fifo_loopback/) | FIFO queue with loopback |
+| [Digital Clock](designs/examples/digital_clock/) | Time-of-day clock display |
+| [FastFWD](designs/examples/fastfwd/) | Network packet forwarding |
+| [Linx CPU](contrib/linx/designs/examples/linx_cpu_pyc/) | Full 5-stage pipeline CPU |
+
+## Design Philosophy
+
+### Unified Signal Model
+
+pyCircuit uses a **single signal definition syntax** for both combinational logic and sequential elements. The compiler automatically infers the hardware type based on:
+
+1. **Reset value**: Signals with `reset` parameter become D flip-flops
+2. **Self-reference**: Signals that reference themselves in assignments become registers
+
+```python
+# Combinational (wire) - no reset
+alu_result = domain.signal("alu_result", width=64)
+alu_result.set(a + b)
+
+# Sequential (register) - with reset
+counter = domain.signal("counter", width=8, reset=0)
+domain.next()
+counter.set(counter + 1)
+```
+
+### Cycle-Aware Computing
+
+Each signal carries a `.cycle` annotation indicating its logical clock cycle. When signals from different cycles are combined, the compiler automatically inserts DFF chains for alignment:
+
+```python
+# a.cycle=0, b.cycle=2, domain.current_cycle=2
+result = a + b  # Compiler inserts 2 DFFs on 'a'
+```
+
+## Development
+
+### Building from Source
 
 ```bash
-LLVM_DIR="$(llvm-config --cmakedir)"
-MLIR_DIR="$(dirname "$LLVM_DIR")/mlir"
+# Install LLVM/MLIR (Ubuntu)
+sudo apt-get install llvm-dev mlir-tools libmlir-dev
 
+# Configure and build
 cmake -G Ninja -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DLLVM_DIR="$LLVM_DIR" \
-  -DMLIR_DIR="$MLIR_DIR"
+  -DLLVM_DIR="$(llvm-config --cmakedir)" \
+  -DMLIR_DIR="$(dirname $(llvm-config --cmakedir))/mlir"
 
-ninja -C build pyc-compile pyc-opt
+ninja -C build pycc pyc-opt
 ```
 
-### Alternative: build helper (llvm-project source tree)
-
-If you keep `llvm-project` in `~/llvm-project`, you can use:
+### Running Tests
 
 ```bash
-bash pyc/mlir/scripts/build_all.sh
+# Run all examples
+bash flows/scripts/run_examples.sh
+
+# Run simulations
+bash flows/scripts/run_sims.sh
+
+# Run Linx CPU regression
+bash contrib/linx/flows/tools/run_linx_cpu_pyc_cpp.sh
 ```
 
-## Emit + compile a design
+### Contributing
 
-### (Optional) install the Python frontend
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 
-For convenience you can install the Python package (so `pycircuit` is on your PATH):
+## License
 
-```bash
-python3 -m pip install -e .
+pyCircuit is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Related Projects
+
+- [LinxISA](https://github.com/LinxISA) - RISC-V ISA implementation
+- [MLIR](https://github.com/llvm/llvm-project) - Multi-Level Intermediate Representation
+- [Chisel](https://github.com/chipsalliance/chisel3) - Scala-based hardware construction language
+- [pyMTL](https://github.com/pymtl/pymtl3) - Python-based hardware modeling framework
+
+## Citation
+
+If you use pyCircuit in your research, please cite:
+
+```bibtex
+@software{pycircuit,
+  title = {pyCircuit: A Python-based Hardware Description Framework},
+  author = {LinxISA Contributors},
+  url = {https://github.com/LinxISA/pyCircuit},
+  year = {2024}
+}
 ```
-
-Emit `.pyc` (MLIR) from Python:
-
-```bash
-PYTHONPATH=python python3 -m pycircuit.cli emit examples/jit_pipeline_vec.py -o /tmp/jit_pipeline_vec.pyc
-```
-
-If installed via `pip`, you can also run:
-
-```bash
-pycircuit emit examples/jit_pipeline_vec.py -o /tmp/jit_pipeline_vec.pyc
-```
-
-Compile MLIR to Verilog:
-
-```bash
-./build/bin/pyc-compile /tmp/jit_pipeline_vec.pyc --emit=verilog -o /tmp/jit_pipeline_vec.v
-```
-
-Regenerate the checked-in golden outputs under `examples/generated/`:
-
-```bash
-scripts/pyc regen
-```
-
-## Open-source Verilog simulation (Icarus / Verilator)
-
-See `docs/VERILOG_FLOW.md`.
-
-## LinxISA CPU bring-up (example)
-
-- pyCircuit source: `examples/linx_cpu_pyc/`
-- Cycle-aware variant: `examples/linx_cpu_pyc_cycle_aware/`
-- SV testbench + program images: `examples/linx_cpu/`
-- Generated outputs (checked in): `examples/generated/linx_cpu_pyc/`
-
-Run the self-checking C++ regression:
-
-```bash
-bash tools/run_linx_cpu_pyc_cpp.sh
-```
-
-Run the cycle-aware variant (same memh fixtures, simpler core model):
-
-```bash
-bash tools/run_linx_cpu_pyc_cycle_aware_cpp.sh
-```
-
-Optional debug artifacts:
-- `PYC_TRACE=1` enables a WB/commit log
-- `PYC_VCD=1` enables VCD dumping
-- `PYC_TRACE_DIR=/path/to/out` overrides the output directory
-- `PYC_KONATA=1` writes a Konata pipeview trace (`*.konata`)
-- `PYC_COMMIT_TRACE=/path/to/trace.jsonl` writes a JSONL commit trace (for diffing)
-
-QEMU vs pyCircuit commit-trace diff (requires Linx QEMU + an LLVM `llvm-mc` build):
-
-```bash
-# Optional env overrides:
-#   QEMU_BIN=/path/to/qemu-system-linx64
-#   LLVM_BUILD=/path/to/llvm-build (must contain bin/llvm-mc)
-bash tools/run_linx_qemu_vs_pyc.sh /path/to/test.s
-```
-
-## Packaging (release tarball)
-
-After building, you can install + package the toolchain:
-
-```bash
-cmake --install build --prefix dist/pycircuit
-(cd build && cpack -G TGZ)
-```
-
-The tarball includes:
-- `bin/pyc-compile`, `bin/pyc-opt`
-- `include/pyc/*` (C++ + Verilog template libraries)
-- `share/pycircuit/python/pycircuit` (Python frontend sources; usable via `PYTHONPATH=...`)
-
-## Repo layout
-
-- `python/pycircuit/`: Python DSL + AST/JIT frontend + CLI
-- `pyc/mlir/`: MLIR dialect, passes, tools (`pyc-opt`, `pyc-compile`)
-- `include/pyc/`: backend template libraries (C++ + Verilog primitives)
-- `examples/`: example designs, testbenches, and checked-in generated outputs
