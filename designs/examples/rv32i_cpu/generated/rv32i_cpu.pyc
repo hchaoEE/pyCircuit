@@ -1,0 +1,1347 @@
+module attributes {pyc.top = @rv32i_cpu, pyc.frontend.contract = "pycircuit"} {
+func.func @rv32i_cpu(%clk: !pyc.clock, %rst: !pyc.reset, %inst_data: i32, %dmem_rdata: i32) -> (i32, i32, i32, i1, i1, i1, i5, i32, i32, i32, i32, i32) attributes {arg_names = ["clk", "rst", "inst_data", "dmem_rdata"], result_names = ["inst_addr", "dmem_addr", "dmem_wdata", "dmem_wen", "dmem_ren", "wb_valid", "wb_rd", "wb_data", "x1_ra", "x2_sp", "x10_a0", "x11_a1"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %inst_data {pyc.name = "inst_data__rv32i_cpu__L35"} : i32
+  %v2 = pyc.alias %dmem_rdata {pyc.name = "dmem_rdata__rv32i_cpu__L36"} : i32
+  %v3 = pyc.wire {pyc.name = "x0__next"} : i32
+  %v4 = pyc.constant 1 : i1
+  %v5 = pyc.constant 0 : i32
+  %v6 = pyc.reg %clk, %rst, %v4, %v3, %v5 : i32
+  %v7 = pyc.alias %v6 {pyc.name = "x0"} : i32
+  %v8 = pyc.wire {pyc.name = "x1__next"} : i32
+  %v9 = pyc.constant 1 : i1
+  %v10 = pyc.constant 0 : i32
+  %v11 = pyc.reg %clk, %rst, %v9, %v8, %v10 : i32
+  %v12 = pyc.alias %v11 {pyc.name = "x1"} : i32
+  %v13 = pyc.wire {pyc.name = "x2__next"} : i32
+  %v14 = pyc.constant 1 : i1
+  %v15 = pyc.constant 0 : i32
+  %v16 = pyc.reg %clk, %rst, %v14, %v13, %v15 : i32
+  %v17 = pyc.alias %v16 {pyc.name = "x2"} : i32
+  %v18 = pyc.wire {pyc.name = "x3__next"} : i32
+  %v19 = pyc.constant 1 : i1
+  %v20 = pyc.constant 0 : i32
+  %v21 = pyc.reg %clk, %rst, %v19, %v18, %v20 : i32
+  %v22 = pyc.alias %v21 {pyc.name = "x3"} : i32
+  %v23 = pyc.wire {pyc.name = "x4__next"} : i32
+  %v24 = pyc.constant 1 : i1
+  %v25 = pyc.constant 0 : i32
+  %v26 = pyc.reg %clk, %rst, %v24, %v23, %v25 : i32
+  %v27 = pyc.alias %v26 {pyc.name = "x4"} : i32
+  %v28 = pyc.wire {pyc.name = "x5__next"} : i32
+  %v29 = pyc.constant 1 : i1
+  %v30 = pyc.constant 0 : i32
+  %v31 = pyc.reg %clk, %rst, %v29, %v28, %v30 : i32
+  %v32 = pyc.alias %v31 {pyc.name = "x5"} : i32
+  %v33 = pyc.wire {pyc.name = "x6__next"} : i32
+  %v34 = pyc.constant 1 : i1
+  %v35 = pyc.constant 0 : i32
+  %v36 = pyc.reg %clk, %rst, %v34, %v33, %v35 : i32
+  %v37 = pyc.alias %v36 {pyc.name = "x6"} : i32
+  %v38 = pyc.wire {pyc.name = "x7__next"} : i32
+  %v39 = pyc.constant 1 : i1
+  %v40 = pyc.constant 0 : i32
+  %v41 = pyc.reg %clk, %rst, %v39, %v38, %v40 : i32
+  %v42 = pyc.alias %v41 {pyc.name = "x7"} : i32
+  %v43 = pyc.wire {pyc.name = "x8__next"} : i32
+  %v44 = pyc.constant 1 : i1
+  %v45 = pyc.constant 0 : i32
+  %v46 = pyc.reg %clk, %rst, %v44, %v43, %v45 : i32
+  %v47 = pyc.alias %v46 {pyc.name = "x8"} : i32
+  %v48 = pyc.wire {pyc.name = "x9__next"} : i32
+  %v49 = pyc.constant 1 : i1
+  %v50 = pyc.constant 0 : i32
+  %v51 = pyc.reg %clk, %rst, %v49, %v48, %v50 : i32
+  %v52 = pyc.alias %v51 {pyc.name = "x9"} : i32
+  %v53 = pyc.wire {pyc.name = "x10__next"} : i32
+  %v54 = pyc.constant 1 : i1
+  %v55 = pyc.constant 0 : i32
+  %v56 = pyc.reg %clk, %rst, %v54, %v53, %v55 : i32
+  %v57 = pyc.alias %v56 {pyc.name = "x10"} : i32
+  %v58 = pyc.wire {pyc.name = "x11__next"} : i32
+  %v59 = pyc.constant 1 : i1
+  %v60 = pyc.constant 0 : i32
+  %v61 = pyc.reg %clk, %rst, %v59, %v58, %v60 : i32
+  %v62 = pyc.alias %v61 {pyc.name = "x11"} : i32
+  %v63 = pyc.wire {pyc.name = "x12__next"} : i32
+  %v64 = pyc.constant 1 : i1
+  %v65 = pyc.constant 0 : i32
+  %v66 = pyc.reg %clk, %rst, %v64, %v63, %v65 : i32
+  %v67 = pyc.alias %v66 {pyc.name = "x12"} : i32
+  %v68 = pyc.wire {pyc.name = "x13__next"} : i32
+  %v69 = pyc.constant 1 : i1
+  %v70 = pyc.constant 0 : i32
+  %v71 = pyc.reg %clk, %rst, %v69, %v68, %v70 : i32
+  %v72 = pyc.alias %v71 {pyc.name = "x13"} : i32
+  %v73 = pyc.wire {pyc.name = "x14__next"} : i32
+  %v74 = pyc.constant 1 : i1
+  %v75 = pyc.constant 0 : i32
+  %v76 = pyc.reg %clk, %rst, %v74, %v73, %v75 : i32
+  %v77 = pyc.alias %v76 {pyc.name = "x14"} : i32
+  %v78 = pyc.wire {pyc.name = "x15__next"} : i32
+  %v79 = pyc.constant 1 : i1
+  %v80 = pyc.constant 0 : i32
+  %v81 = pyc.reg %clk, %rst, %v79, %v78, %v80 : i32
+  %v82 = pyc.alias %v81 {pyc.name = "x15"} : i32
+  %v83 = pyc.wire {pyc.name = "x16__next"} : i32
+  %v84 = pyc.constant 1 : i1
+  %v85 = pyc.constant 0 : i32
+  %v86 = pyc.reg %clk, %rst, %v84, %v83, %v85 : i32
+  %v87 = pyc.alias %v86 {pyc.name = "x16"} : i32
+  %v88 = pyc.wire {pyc.name = "x17__next"} : i32
+  %v89 = pyc.constant 1 : i1
+  %v90 = pyc.constant 0 : i32
+  %v91 = pyc.reg %clk, %rst, %v89, %v88, %v90 : i32
+  %v92 = pyc.alias %v91 {pyc.name = "x17"} : i32
+  %v93 = pyc.wire {pyc.name = "x18__next"} : i32
+  %v94 = pyc.constant 1 : i1
+  %v95 = pyc.constant 0 : i32
+  %v96 = pyc.reg %clk, %rst, %v94, %v93, %v95 : i32
+  %v97 = pyc.alias %v96 {pyc.name = "x18"} : i32
+  %v98 = pyc.wire {pyc.name = "x19__next"} : i32
+  %v99 = pyc.constant 1 : i1
+  %v100 = pyc.constant 0 : i32
+  %v101 = pyc.reg %clk, %rst, %v99, %v98, %v100 : i32
+  %v102 = pyc.alias %v101 {pyc.name = "x19"} : i32
+  %v103 = pyc.wire {pyc.name = "x20__next"} : i32
+  %v104 = pyc.constant 1 : i1
+  %v105 = pyc.constant 0 : i32
+  %v106 = pyc.reg %clk, %rst, %v104, %v103, %v105 : i32
+  %v107 = pyc.alias %v106 {pyc.name = "x20"} : i32
+  %v108 = pyc.wire {pyc.name = "x21__next"} : i32
+  %v109 = pyc.constant 1 : i1
+  %v110 = pyc.constant 0 : i32
+  %v111 = pyc.reg %clk, %rst, %v109, %v108, %v110 : i32
+  %v112 = pyc.alias %v111 {pyc.name = "x21"} : i32
+  %v113 = pyc.wire {pyc.name = "x22__next"} : i32
+  %v114 = pyc.constant 1 : i1
+  %v115 = pyc.constant 0 : i32
+  %v116 = pyc.reg %clk, %rst, %v114, %v113, %v115 : i32
+  %v117 = pyc.alias %v116 {pyc.name = "x22"} : i32
+  %v118 = pyc.wire {pyc.name = "x23__next"} : i32
+  %v119 = pyc.constant 1 : i1
+  %v120 = pyc.constant 0 : i32
+  %v121 = pyc.reg %clk, %rst, %v119, %v118, %v120 : i32
+  %v122 = pyc.alias %v121 {pyc.name = "x23"} : i32
+  %v123 = pyc.wire {pyc.name = "x24__next"} : i32
+  %v124 = pyc.constant 1 : i1
+  %v125 = pyc.constant 0 : i32
+  %v126 = pyc.reg %clk, %rst, %v124, %v123, %v125 : i32
+  %v127 = pyc.alias %v126 {pyc.name = "x24"} : i32
+  %v128 = pyc.wire {pyc.name = "x25__next"} : i32
+  %v129 = pyc.constant 1 : i1
+  %v130 = pyc.constant 0 : i32
+  %v131 = pyc.reg %clk, %rst, %v129, %v128, %v130 : i32
+  %v132 = pyc.alias %v131 {pyc.name = "x25"} : i32
+  %v133 = pyc.wire {pyc.name = "x26__next"} : i32
+  %v134 = pyc.constant 1 : i1
+  %v135 = pyc.constant 0 : i32
+  %v136 = pyc.reg %clk, %rst, %v134, %v133, %v135 : i32
+  %v137 = pyc.alias %v136 {pyc.name = "x26"} : i32
+  %v138 = pyc.wire {pyc.name = "x27__next"} : i32
+  %v139 = pyc.constant 1 : i1
+  %v140 = pyc.constant 0 : i32
+  %v141 = pyc.reg %clk, %rst, %v139, %v138, %v140 : i32
+  %v142 = pyc.alias %v141 {pyc.name = "x27"} : i32
+  %v143 = pyc.wire {pyc.name = "x28__next"} : i32
+  %v144 = pyc.constant 1 : i1
+  %v145 = pyc.constant 0 : i32
+  %v146 = pyc.reg %clk, %rst, %v144, %v143, %v145 : i32
+  %v147 = pyc.alias %v146 {pyc.name = "x28"} : i32
+  %v148 = pyc.wire {pyc.name = "x29__next"} : i32
+  %v149 = pyc.constant 1 : i1
+  %v150 = pyc.constant 0 : i32
+  %v151 = pyc.reg %clk, %rst, %v149, %v148, %v150 : i32
+  %v152 = pyc.alias %v151 {pyc.name = "x29"} : i32
+  %v153 = pyc.wire {pyc.name = "x30__next"} : i32
+  %v154 = pyc.constant 1 : i1
+  %v155 = pyc.constant 0 : i32
+  %v156 = pyc.reg %clk, %rst, %v154, %v153, %v155 : i32
+  %v157 = pyc.alias %v156 {pyc.name = "x30"} : i32
+  %v158 = pyc.wire {pyc.name = "x31__next"} : i32
+  %v159 = pyc.constant 1 : i1
+  %v160 = pyc.constant 0 : i32
+  %v161 = pyc.reg %clk, %rst, %v159, %v158, %v160 : i32
+  %v162 = pyc.alias %v161 {pyc.name = "x31"} : i32
+  %v163 = pyc.wire {pyc.name = "pc_q__next"} : i32
+  %v164 = pyc.constant 1 : i1
+  %v165 = pyc.constant 0 : i32
+  %v166 = pyc.reg %clk, %rst, %v164, %v163, %v165 : i32
+  %v167 = pyc.alias %v166 {pyc.name = "pc_q"} : i32
+  %v168 = pyc.alias %v167 {pyc.name = "pc__rv32i_cpu__L46"} : i32
+  %v169 = pyc.wire {pyc.name = "ifid_v__next"} : i1
+  %v170 = pyc.constant 1 : i1
+  %v171 = pyc.constant 0 : i1
+  %v172 = pyc.reg %clk, %rst, %v170, %v169, %v171 : i1
+  %v173 = pyc.alias %v172 {pyc.name = "ifid_v"} : i1
+  %v174 = pyc.alias %v173 {pyc.name = "ifid_v__rv32i_cpu__L53"} : i1
+  %v175 = pyc.wire {pyc.name = "ifid_pc__next"} : i32
+  %v176 = pyc.constant 1 : i1
+  %v177 = pyc.constant 0 : i32
+  %v178 = pyc.reg %clk, %rst, %v176, %v175, %v177 : i32
+  %v179 = pyc.alias %v178 {pyc.name = "ifid_pc"} : i32
+  %v180 = pyc.alias %v179 {pyc.name = "ifid_pc__rv32i_cpu__L54"} : i32
+  %v181 = pyc.wire {pyc.name = "ifid_inst__next"} : i32
+  %v182 = pyc.constant 1 : i1
+  %v183 = pyc.constant 0 : i32
+  %v184 = pyc.reg %clk, %rst, %v182, %v181, %v183 : i32
+  %v185 = pyc.alias %v184 {pyc.name = "ifid_inst"} : i32
+  %v186 = pyc.alias %v185 {pyc.name = "ifid_inst__rv32i_cpu__L55"} : i32
+  %v187 = pyc.wire {pyc.name = "idex_v__next"} : i1
+  %v188 = pyc.constant 1 : i1
+  %v189 = pyc.constant 0 : i1
+  %v190 = pyc.reg %clk, %rst, %v188, %v187, %v189 : i1
+  %v191 = pyc.alias %v190 {pyc.name = "idex_v"} : i1
+  %v192 = pyc.alias %v191 {pyc.name = "idex_v__rv32i_cpu__L58"} : i1
+  %v193 = pyc.wire {pyc.name = "idex_pc__next"} : i32
+  %v194 = pyc.constant 1 : i1
+  %v195 = pyc.constant 0 : i32
+  %v196 = pyc.reg %clk, %rst, %v194, %v193, %v195 : i32
+  %v197 = pyc.alias %v196 {pyc.name = "idex_pc"} : i32
+  %v198 = pyc.alias %v197 {pyc.name = "idex_pc__rv32i_cpu__L59"} : i32
+  %v199 = pyc.wire {pyc.name = "idex_rs1__next"} : i32
+  %v200 = pyc.constant 1 : i1
+  %v201 = pyc.constant 0 : i32
+  %v202 = pyc.reg %clk, %rst, %v200, %v199, %v201 : i32
+  %v203 = pyc.alias %v202 {pyc.name = "idex_rs1"} : i32
+  %v204 = pyc.alias %v203 {pyc.name = "idex_rs1__rv32i_cpu__L60"} : i32
+  %v205 = pyc.wire {pyc.name = "idex_rs2__next"} : i32
+  %v206 = pyc.constant 1 : i1
+  %v207 = pyc.constant 0 : i32
+  %v208 = pyc.reg %clk, %rst, %v206, %v205, %v207 : i32
+  %v209 = pyc.alias %v208 {pyc.name = "idex_rs2"} : i32
+  %v210 = pyc.alias %v209 {pyc.name = "idex_rs2__rv32i_cpu__L61"} : i32
+  %v211 = pyc.wire {pyc.name = "idex_imm__next"} : i32
+  %v212 = pyc.constant 1 : i1
+  %v213 = pyc.constant 0 : i32
+  %v214 = pyc.reg %clk, %rst, %v212, %v211, %v213 : i32
+  %v215 = pyc.alias %v214 {pyc.name = "idex_imm"} : i32
+  %v216 = pyc.alias %v215 {pyc.name = "idex_imm__rv32i_cpu__L62"} : i32
+  %v217 = pyc.wire {pyc.name = "idex_rd__next"} : i5
+  %v218 = pyc.constant 1 : i1
+  %v219 = pyc.constant 0 : i5
+  %v220 = pyc.reg %clk, %rst, %v218, %v217, %v219 : i5
+  %v221 = pyc.alias %v220 {pyc.name = "idex_rd"} : i5
+  %v222 = pyc.alias %v221 {pyc.name = "idex_rd__rv32i_cpu__L63"} : i5
+  %v223 = pyc.wire {pyc.name = "idex_f3__next"} : i3
+  %v224 = pyc.constant 1 : i1
+  %v225 = pyc.constant 0 : i3
+  %v226 = pyc.reg %clk, %rst, %v224, %v223, %v225 : i3
+  %v227 = pyc.alias %v226 {pyc.name = "idex_f3"} : i3
+  %v228 = pyc.alias %v227 {pyc.name = "idex_f3__rv32i_cpu__L64"} : i3
+  %v229 = pyc.wire {pyc.name = "idex_f7b5__next"} : i1
+  %v230 = pyc.constant 1 : i1
+  %v231 = pyc.constant 0 : i1
+  %v232 = pyc.reg %clk, %rst, %v230, %v229, %v231 : i1
+  %v233 = pyc.alias %v232 {pyc.name = "idex_f7b5"} : i1
+  %v234 = pyc.alias %v233 {pyc.name = "idex_f7b5__rv32i_cpu__L65"} : i1
+  %v235 = pyc.wire {pyc.name = "idex_rtype__next"} : i1
+  %v236 = pyc.constant 1 : i1
+  %v237 = pyc.constant 0 : i1
+  %v238 = pyc.reg %clk, %rst, %v236, %v235, %v237 : i1
+  %v239 = pyc.alias %v238 {pyc.name = "idex_rtype"} : i1
+  %v240 = pyc.alias %v239 {pyc.name = "idex_rtype__rv32i_cpu__L66"} : i1
+  %v241 = pyc.wire {pyc.name = "idex_ld__next"} : i1
+  %v242 = pyc.constant 1 : i1
+  %v243 = pyc.constant 0 : i1
+  %v244 = pyc.reg %clk, %rst, %v242, %v241, %v243 : i1
+  %v245 = pyc.alias %v244 {pyc.name = "idex_ld"} : i1
+  %v246 = pyc.alias %v245 {pyc.name = "idex_ld__rv32i_cpu__L67"} : i1
+  %v247 = pyc.wire {pyc.name = "idex_st__next"} : i1
+  %v248 = pyc.constant 1 : i1
+  %v249 = pyc.constant 0 : i1
+  %v250 = pyc.reg %clk, %rst, %v248, %v247, %v249 : i1
+  %v251 = pyc.alias %v250 {pyc.name = "idex_st"} : i1
+  %v252 = pyc.alias %v251 {pyc.name = "idex_st__rv32i_cpu__L68"} : i1
+  %v253 = pyc.wire {pyc.name = "idex_br__next"} : i1
+  %v254 = pyc.constant 1 : i1
+  %v255 = pyc.constant 0 : i1
+  %v256 = pyc.reg %clk, %rst, %v254, %v253, %v255 : i1
+  %v257 = pyc.alias %v256 {pyc.name = "idex_br"} : i1
+  %v258 = pyc.alias %v257 {pyc.name = "idex_br__rv32i_cpu__L69"} : i1
+  %v259 = pyc.wire {pyc.name = "idex_jal__next"} : i1
+  %v260 = pyc.constant 1 : i1
+  %v261 = pyc.constant 0 : i1
+  %v262 = pyc.reg %clk, %rst, %v260, %v259, %v261 : i1
+  %v263 = pyc.alias %v262 {pyc.name = "idex_jal"} : i1
+  %v264 = pyc.alias %v263 {pyc.name = "idex_jal__rv32i_cpu__L70"} : i1
+  %v265 = pyc.wire {pyc.name = "idex_jalr__next"} : i1
+  %v266 = pyc.constant 1 : i1
+  %v267 = pyc.constant 0 : i1
+  %v268 = pyc.reg %clk, %rst, %v266, %v265, %v267 : i1
+  %v269 = pyc.alias %v268 {pyc.name = "idex_jalr"} : i1
+  %v270 = pyc.alias %v269 {pyc.name = "idex_jalr__rv32i_cpu__L71"} : i1
+  %v271 = pyc.wire {pyc.name = "idex_lui__next"} : i1
+  %v272 = pyc.constant 1 : i1
+  %v273 = pyc.constant 0 : i1
+  %v274 = pyc.reg %clk, %rst, %v272, %v271, %v273 : i1
+  %v275 = pyc.alias %v274 {pyc.name = "idex_lui"} : i1
+  %v276 = pyc.alias %v275 {pyc.name = "idex_lui__rv32i_cpu__L72"} : i1
+  %v277 = pyc.wire {pyc.name = "idex_auipc__next"} : i1
+  %v278 = pyc.constant 1 : i1
+  %v279 = pyc.constant 0 : i1
+  %v280 = pyc.reg %clk, %rst, %v278, %v277, %v279 : i1
+  %v281 = pyc.alias %v280 {pyc.name = "idex_auipc"} : i1
+  %v282 = pyc.alias %v281 {pyc.name = "idex_auipc__rv32i_cpu__L73"} : i1
+  %v283 = pyc.wire {pyc.name = "exmem_v__next"} : i1
+  %v284 = pyc.constant 1 : i1
+  %v285 = pyc.constant 0 : i1
+  %v286 = pyc.reg %clk, %rst, %v284, %v283, %v285 : i1
+  %v287 = pyc.alias %v286 {pyc.name = "exmem_v"} : i1
+  %v288 = pyc.alias %v287 {pyc.name = "exmem_v__rv32i_cpu__L76"} : i1
+  %v289 = pyc.wire {pyc.name = "exmem_rd__next"} : i5
+  %v290 = pyc.constant 1 : i1
+  %v291 = pyc.constant 0 : i5
+  %v292 = pyc.reg %clk, %rst, %v290, %v289, %v291 : i5
+  %v293 = pyc.alias %v292 {pyc.name = "exmem_rd"} : i5
+  %v294 = pyc.alias %v293 {pyc.name = "exmem_rd__rv32i_cpu__L77"} : i5
+  %v295 = pyc.wire {pyc.name = "exmem_res__next"} : i32
+  %v296 = pyc.constant 1 : i1
+  %v297 = pyc.constant 0 : i32
+  %v298 = pyc.reg %clk, %rst, %v296, %v295, %v297 : i32
+  %v299 = pyc.alias %v298 {pyc.name = "exmem_res"} : i32
+  %v300 = pyc.alias %v299 {pyc.name = "exmem_res__rv32i_cpu__L78"} : i32
+  %v301 = pyc.wire {pyc.name = "exmem_rs2v__next"} : i32
+  %v302 = pyc.constant 1 : i1
+  %v303 = pyc.constant 0 : i32
+  %v304 = pyc.reg %clk, %rst, %v302, %v301, %v303 : i32
+  %v305 = pyc.alias %v304 {pyc.name = "exmem_rs2v"} : i32
+  %v306 = pyc.alias %v305 {pyc.name = "exmem_rs2__rv32i_cpu__L79"} : i32
+  %v307 = pyc.wire {pyc.name = "exmem_ld__next"} : i1
+  %v308 = pyc.constant 1 : i1
+  %v309 = pyc.constant 0 : i1
+  %v310 = pyc.reg %clk, %rst, %v308, %v307, %v309 : i1
+  %v311 = pyc.alias %v310 {pyc.name = "exmem_ld"} : i1
+  %v312 = pyc.alias %v311 {pyc.name = "exmem_ld__rv32i_cpu__L80"} : i1
+  %v313 = pyc.wire {pyc.name = "exmem_st__next"} : i1
+  %v314 = pyc.constant 1 : i1
+  %v315 = pyc.constant 0 : i1
+  %v316 = pyc.reg %clk, %rst, %v314, %v313, %v315 : i1
+  %v317 = pyc.alias %v316 {pyc.name = "exmem_st"} : i1
+  %v318 = pyc.alias %v317 {pyc.name = "exmem_st__rv32i_cpu__L81"} : i1
+  %v319 = pyc.wire {pyc.name = "memwb_v__next"} : i1
+  %v320 = pyc.constant 1 : i1
+  %v321 = pyc.constant 0 : i1
+  %v322 = pyc.reg %clk, %rst, %v320, %v319, %v321 : i1
+  %v323 = pyc.alias %v322 {pyc.name = "memwb_v"} : i1
+  %v324 = pyc.alias %v323 {pyc.name = "memwb_v__rv32i_cpu__L84"} : i1
+  %v325 = pyc.wire {pyc.name = "memwb_rd__next"} : i5
+  %v326 = pyc.constant 1 : i1
+  %v327 = pyc.constant 0 : i5
+  %v328 = pyc.reg %clk, %rst, %v326, %v325, %v327 : i5
+  %v329 = pyc.alias %v328 {pyc.name = "memwb_rd"} : i5
+  %v330 = pyc.alias %v329 {pyc.name = "memwb_rd__rv32i_cpu__L85"} : i5
+  %v331 = pyc.wire {pyc.name = "memwb_res__next"} : i32
+  %v332 = pyc.constant 1 : i1
+  %v333 = pyc.constant 0 : i32
+  %v334 = pyc.reg %clk, %rst, %v332, %v331, %v333 : i32
+  %v335 = pyc.alias %v334 {pyc.name = "memwb_res"} : i32
+  %v336 = pyc.alias %v335 {pyc.name = "memwb_res__rv32i_cpu__L86"} : i32
+  %v337 = pyc.alias %v192 {pyc.name = "ev__rv32i_cpu__L91"} : i1
+  %v338 = pyc.alias %v198 {pyc.name = "epc__rv32i_cpu__L92"} : i32
+  %v339 = pyc.alias %v204 {pyc.name = "ea__rv32i_cpu__L93"} : i32
+  %v340 = pyc.alias %v210 {pyc.name = "eb__rv32i_cpu__L94"} : i32
+  %v341 = pyc.alias %v216 {pyc.name = "eimm__rv32i_cpu__L95"} : i32
+  %v342 = pyc.alias %v222 {pyc.name = "erd__rv32i_cpu__L96"} : i5
+  %v343 = pyc.alias %v228 {pyc.name = "ef3__rv32i_cpu__L97"} : i3
+  %v344 = pyc.alias %v234 {pyc.name = "ef7__rv32i_cpu__L98"} : i1
+  %v345 = pyc.alias %v240 {pyc.name = "e_rt__rv32i_cpu__L99"} : i1
+  %v346 = pyc.alias %v246 {pyc.name = "e_ld__rv32i_cpu__L100"} : i1
+  %v347 = pyc.alias %v252 {pyc.name = "e_st__rv32i_cpu__L101"} : i1
+  %v348 = pyc.alias %v258 {pyc.name = "e_br__rv32i_cpu__L102"} : i1
+  %v349 = pyc.alias %v264 {pyc.name = "e_jal__rv32i_cpu__L103"} : i1
+  %v350 = pyc.alias %v270 {pyc.name = "e_jalr__rv32i_cpu__L104"} : i1
+  %v351 = pyc.alias %v276 {pyc.name = "e_lui__rv32i_cpu__L105"} : i1
+  %v352 = pyc.alias %v282 {pyc.name = "e_auipc__rv32i_cpu__L106"} : i1
+  %v353 = pyc.mux %v345, %v340, %v341 : i32
+  %v354 = pyc.alias %v353 {pyc.name = "alu_b__rv32i_cpu__L108"} : i32
+  %v355 = pyc.add %v339, %v354 : i32
+  %v356 = pyc.extract %v355 {lsb = 0} : i32 -> i32
+  %v357 = pyc.alias %v356 {pyc.name = "add_r__rv32i_cpu__L111"} : i32
+  %v358 = pyc.sub %v339, %v354 : i32
+  %v359 = pyc.extract %v358 {lsb = 0} : i32 -> i32
+  %v360 = pyc.alias %v359 {pyc.name = "sub_r__rv32i_cpu__L112"} : i32
+  %v361 = pyc.and %v339, %v354 : i32
+  %v362 = pyc.alias %v361 {pyc.name = "and_r__rv32i_cpu__L113"} : i32
+  %v363 = pyc.or %v339, %v354 : i32
+  %v364 = pyc.alias %v363 {pyc.name = "or_r__rv32i_cpu__L114"} : i32
+  %v365 = pyc.xor %v339, %v354 : i32
+  %v366 = pyc.alias %v365 {pyc.name = "xor_r__rv32i_cpu__L115"} : i32
+  %v367 = pyc.extract %v339 {lsb = 31} : i32 -> i1
+  %v368 = pyc.alias %v367 {pyc.name = "sa__rv32i_cpu__L118"} : i1
+  %v369 = pyc.extract %v354 {lsb = 31} : i32 -> i1
+  %v370 = pyc.alias %v369 {pyc.name = "sb__rv32i_cpu__L119"} : i1
+  %v371 = pyc.xor %v368, %v370 : i1
+  %v372 = pyc.alias %v371 {pyc.name = "sd__rv32i_cpu__L120"} : i1
+  %v373 = pyc.ult %v339, %v354 : i32
+  %v374 = pyc.alias %v373 {pyc.name = "u_lt__rv32i_cpu__L121"} : i1
+  %v375 = pyc.mux %v372, %v368, %v374 : i1
+  %v376 = pyc.alias %v375 {pyc.name = "s_lt__rv32i_cpu__L122"} : i1
+  %v377 = pyc.constant 0 : i32
+  %v378 = pyc.zext %v376 : i1 -> i32
+  %v379 = pyc.add %v378, %v377 : i32
+  %v380 = pyc.extract %v379 {lsb = 0} : i32 -> i32
+  %v381 = pyc.alias %v380 {pyc.name = "slt_r__rv32i_cpu__L123"} : i32
+  %v382 = pyc.constant 0 : i32
+  %v383 = pyc.zext %v374 : i1 -> i32
+  %v384 = pyc.add %v383, %v382 : i32
+  %v385 = pyc.extract %v384 {lsb = 0} : i32 -> i32
+  %v386 = pyc.alias %v385 {pyc.name = "sltu_r__rv32i_cpu__L124"} : i32
+  %v387 = pyc.extract %v354 {lsb = 0} : i32 -> i5
+  %v388 = pyc.alias %v387 {pyc.name = "sh__rv32i_cpu__L127"} : i5
+  %v389 = pyc.alias %v339 {pyc.name = "sll__rv32i_cpu__L128"} : i32
+  %v390 = pyc.shli %v389 {amount = 1} : i32
+  %v391 = pyc.extract %v390 {lsb = 0} : i32 -> i32
+  %v392 = pyc.alias %v391 {pyc.name = "t__rv32i_cpu__L131"} : i32
+  %v393 = pyc.extract %v388 {lsb = 0} : i5 -> i1
+  %v394 = pyc.mux %v393, %v392, %v389 : i32
+  %v395 = pyc.alias %v394 {pyc.name = "sll__rv32i_cpu__L132"} : i32
+  %v396 = pyc.shli %v395 {amount = 2} : i32
+  %v397 = pyc.extract %v396 {lsb = 0} : i32 -> i32
+  %v398 = pyc.alias %v397 {pyc.name = "t__rv32i_cpu__L131"} : i32
+  %v399 = pyc.extract %v388 {lsb = 1} : i5 -> i1
+  %v400 = pyc.mux %v399, %v398, %v395 : i32
+  %v401 = pyc.alias %v400 {pyc.name = "sll__rv32i_cpu__L132"} : i32
+  %v402 = pyc.shli %v401 {amount = 4} : i32
+  %v403 = pyc.extract %v402 {lsb = 0} : i32 -> i32
+  %v404 = pyc.alias %v403 {pyc.name = "t__rv32i_cpu__L131"} : i32
+  %v405 = pyc.extract %v388 {lsb = 2} : i5 -> i1
+  %v406 = pyc.mux %v405, %v404, %v401 : i32
+  %v407 = pyc.alias %v406 {pyc.name = "sll__rv32i_cpu__L132"} : i32
+  %v408 = pyc.shli %v407 {amount = 8} : i32
+  %v409 = pyc.extract %v408 {lsb = 0} : i32 -> i32
+  %v410 = pyc.alias %v409 {pyc.name = "t__rv32i_cpu__L131"} : i32
+  %v411 = pyc.extract %v388 {lsb = 3} : i5 -> i1
+  %v412 = pyc.mux %v411, %v410, %v407 : i32
+  %v413 = pyc.alias %v412 {pyc.name = "sll__rv32i_cpu__L132"} : i32
+  %v414 = pyc.shli %v413 {amount = 16} : i32
+  %v415 = pyc.extract %v414 {lsb = 0} : i32 -> i32
+  %v416 = pyc.alias %v415 {pyc.name = "t__rv32i_cpu__L131"} : i32
+  %v417 = pyc.extract %v388 {lsb = 4} : i5 -> i1
+  %v418 = pyc.mux %v417, %v416, %v413 : i32
+  %v419 = pyc.alias %v418 {pyc.name = "sll__rv32i_cpu__L132"} : i32
+  %v420 = pyc.alias %v339 {pyc.name = "srl__rv32i_cpu__L135"} : i32
+  %v421 = pyc.extract %v420 {lsb = 1} : i32 -> i31
+  %v422 = pyc.alias %v421 {pyc.name = "lo__rv32i_cpu__L138"} : i31
+  %v423 = pyc.constant 0 : i32
+  %v424 = pyc.zext %v422 : i31 -> i32
+  %v425 = pyc.add %v424, %v423 : i32
+  %v426 = pyc.extract %v425 {lsb = 0} : i32 -> i32
+  %v427 = pyc.alias %v426 {pyc.name = "t__rv32i_cpu__L139"} : i32
+  %v428 = pyc.extract %v388 {lsb = 0} : i5 -> i1
+  %v429 = pyc.mux %v428, %v427, %v420 : i32
+  %v430 = pyc.alias %v429 {pyc.name = "srl__rv32i_cpu__L140"} : i32
+  %v431 = pyc.extract %v430 {lsb = 2} : i32 -> i30
+  %v432 = pyc.alias %v431 {pyc.name = "lo__rv32i_cpu__L138"} : i30
+  %v433 = pyc.constant 0 : i32
+  %v434 = pyc.zext %v432 : i30 -> i32
+  %v435 = pyc.add %v434, %v433 : i32
+  %v436 = pyc.extract %v435 {lsb = 0} : i32 -> i32
+  %v437 = pyc.alias %v436 {pyc.name = "t__rv32i_cpu__L139"} : i32
+  %v438 = pyc.extract %v388 {lsb = 1} : i5 -> i1
+  %v439 = pyc.mux %v438, %v437, %v430 : i32
+  %v440 = pyc.alias %v439 {pyc.name = "srl__rv32i_cpu__L140"} : i32
+  %v441 = pyc.extract %v440 {lsb = 4} : i32 -> i28
+  %v442 = pyc.alias %v441 {pyc.name = "lo__rv32i_cpu__L138"} : i28
+  %v443 = pyc.constant 0 : i32
+  %v444 = pyc.zext %v442 : i28 -> i32
+  %v445 = pyc.add %v444, %v443 : i32
+  %v446 = pyc.extract %v445 {lsb = 0} : i32 -> i32
+  %v447 = pyc.alias %v446 {pyc.name = "t__rv32i_cpu__L139"} : i32
+  %v448 = pyc.extract %v388 {lsb = 2} : i5 -> i1
+  %v449 = pyc.mux %v448, %v447, %v440 : i32
+  %v450 = pyc.alias %v449 {pyc.name = "srl__rv32i_cpu__L140"} : i32
+  %v451 = pyc.extract %v450 {lsb = 8} : i32 -> i24
+  %v452 = pyc.alias %v451 {pyc.name = "lo__rv32i_cpu__L138"} : i24
+  %v453 = pyc.constant 0 : i32
+  %v454 = pyc.zext %v452 : i24 -> i32
+  %v455 = pyc.add %v454, %v453 : i32
+  %v456 = pyc.extract %v455 {lsb = 0} : i32 -> i32
+  %v457 = pyc.alias %v456 {pyc.name = "t__rv32i_cpu__L139"} : i32
+  %v458 = pyc.extract %v388 {lsb = 3} : i5 -> i1
+  %v459 = pyc.mux %v458, %v457, %v450 : i32
+  %v460 = pyc.alias %v459 {pyc.name = "srl__rv32i_cpu__L140"} : i32
+  %v461 = pyc.extract %v460 {lsb = 16} : i32 -> i16
+  %v462 = pyc.alias %v461 {pyc.name = "lo__rv32i_cpu__L138"} : i16
+  %v463 = pyc.constant 0 : i32
+  %v464 = pyc.zext %v462 : i16 -> i32
+  %v465 = pyc.add %v464, %v463 : i32
+  %v466 = pyc.extract %v465 {lsb = 0} : i32 -> i32
+  %v467 = pyc.alias %v466 {pyc.name = "t__rv32i_cpu__L139"} : i32
+  %v468 = pyc.extract %v388 {lsb = 4} : i5 -> i1
+  %v469 = pyc.mux %v468, %v467, %v460 : i32
+  %v470 = pyc.alias %v469 {pyc.name = "srl__rv32i_cpu__L140"} : i32
+  %v471 = pyc.alias %v339 {pyc.name = "sra__rv32i_cpu__L143"} : i32
+  %v472 = pyc.extract %v471 {lsb = 31} : i32 -> i1
+  %v473 = pyc.alias %v472 {pyc.name = "sign__rv32i_cpu__L146"} : i1
+  %v474 = pyc.extract %v471 {lsb = 1} : i32 -> i31
+  %v475 = pyc.alias %v474 {pyc.name = "lo__rv32i_cpu__L147"} : i31
+  %v476 = pyc.constant 0 : i32
+  %v477 = pyc.zext %v475 : i31 -> i32
+  %v478 = pyc.add %v477, %v476 : i32
+  %v479 = pyc.extract %v478 {lsb = 0} : i32 -> i32
+  %v480 = pyc.alias %v479 {pyc.name = "t__rv32i_cpu__L148"} : i32
+  %v481 = pyc.constant 2147483648 : i32
+  %v482 = pyc.or %v480, %v481 : i32
+  %v483 = pyc.mux %v473, %v482, %v480 : i32
+  %v484 = pyc.alias %v483 {pyc.name = "filled__rv32i_cpu__L150"} : i32
+  %v485 = pyc.extract %v388 {lsb = 0} : i5 -> i1
+  %v486 = pyc.mux %v485, %v484, %v471 : i32
+  %v487 = pyc.alias %v486 {pyc.name = "sra__rv32i_cpu__L151"} : i32
+  %v488 = pyc.extract %v487 {lsb = 31} : i32 -> i1
+  %v489 = pyc.alias %v488 {pyc.name = "sign__rv32i_cpu__L146"} : i1
+  %v490 = pyc.extract %v487 {lsb = 2} : i32 -> i30
+  %v491 = pyc.alias %v490 {pyc.name = "lo__rv32i_cpu__L147"} : i30
+  %v492 = pyc.constant 0 : i32
+  %v493 = pyc.zext %v491 : i30 -> i32
+  %v494 = pyc.add %v493, %v492 : i32
+  %v495 = pyc.extract %v494 {lsb = 0} : i32 -> i32
+  %v496 = pyc.alias %v495 {pyc.name = "t__rv32i_cpu__L148"} : i32
+  %v497 = pyc.constant 3221225472 : i32
+  %v498 = pyc.or %v496, %v497 : i32
+  %v499 = pyc.mux %v489, %v498, %v496 : i32
+  %v500 = pyc.alias %v499 {pyc.name = "filled__rv32i_cpu__L150"} : i32
+  %v501 = pyc.extract %v388 {lsb = 1} : i5 -> i1
+  %v502 = pyc.mux %v501, %v500, %v487 : i32
+  %v503 = pyc.alias %v502 {pyc.name = "sra__rv32i_cpu__L151"} : i32
+  %v504 = pyc.extract %v503 {lsb = 31} : i32 -> i1
+  %v505 = pyc.alias %v504 {pyc.name = "sign__rv32i_cpu__L146"} : i1
+  %v506 = pyc.extract %v503 {lsb = 4} : i32 -> i28
+  %v507 = pyc.alias %v506 {pyc.name = "lo__rv32i_cpu__L147"} : i28
+  %v508 = pyc.constant 0 : i32
+  %v509 = pyc.zext %v507 : i28 -> i32
+  %v510 = pyc.add %v509, %v508 : i32
+  %v511 = pyc.extract %v510 {lsb = 0} : i32 -> i32
+  %v512 = pyc.alias %v511 {pyc.name = "t__rv32i_cpu__L148"} : i32
+  %v513 = pyc.constant 4026531840 : i32
+  %v514 = pyc.or %v512, %v513 : i32
+  %v515 = pyc.mux %v505, %v514, %v512 : i32
+  %v516 = pyc.alias %v515 {pyc.name = "filled__rv32i_cpu__L150"} : i32
+  %v517 = pyc.extract %v388 {lsb = 2} : i5 -> i1
+  %v518 = pyc.mux %v517, %v516, %v503 : i32
+  %v519 = pyc.alias %v518 {pyc.name = "sra__rv32i_cpu__L151"} : i32
+  %v520 = pyc.extract %v519 {lsb = 31} : i32 -> i1
+  %v521 = pyc.alias %v520 {pyc.name = "sign__rv32i_cpu__L146"} : i1
+  %v522 = pyc.extract %v519 {lsb = 8} : i32 -> i24
+  %v523 = pyc.alias %v522 {pyc.name = "lo__rv32i_cpu__L147"} : i24
+  %v524 = pyc.constant 0 : i32
+  %v525 = pyc.zext %v523 : i24 -> i32
+  %v526 = pyc.add %v525, %v524 : i32
+  %v527 = pyc.extract %v526 {lsb = 0} : i32 -> i32
+  %v528 = pyc.alias %v527 {pyc.name = "t__rv32i_cpu__L148"} : i32
+  %v529 = pyc.constant 4278190080 : i32
+  %v530 = pyc.or %v528, %v529 : i32
+  %v531 = pyc.mux %v521, %v530, %v528 : i32
+  %v532 = pyc.alias %v531 {pyc.name = "filled__rv32i_cpu__L150"} : i32
+  %v533 = pyc.extract %v388 {lsb = 3} : i5 -> i1
+  %v534 = pyc.mux %v533, %v532, %v519 : i32
+  %v535 = pyc.alias %v534 {pyc.name = "sra__rv32i_cpu__L151"} : i32
+  %v536 = pyc.extract %v535 {lsb = 31} : i32 -> i1
+  %v537 = pyc.alias %v536 {pyc.name = "sign__rv32i_cpu__L146"} : i1
+  %v538 = pyc.extract %v535 {lsb = 16} : i32 -> i16
+  %v539 = pyc.alias %v538 {pyc.name = "lo__rv32i_cpu__L147"} : i16
+  %v540 = pyc.constant 0 : i32
+  %v541 = pyc.zext %v539 : i16 -> i32
+  %v542 = pyc.add %v541, %v540 : i32
+  %v543 = pyc.extract %v542 {lsb = 0} : i32 -> i32
+  %v544 = pyc.alias %v543 {pyc.name = "t__rv32i_cpu__L148"} : i32
+  %v545 = pyc.constant 4294901760 : i32
+  %v546 = pyc.or %v544, %v545 : i32
+  %v547 = pyc.mux %v537, %v546, %v544 : i32
+  %v548 = pyc.alias %v547 {pyc.name = "filled__rv32i_cpu__L150"} : i32
+  %v549 = pyc.extract %v388 {lsb = 4} : i5 -> i1
+  %v550 = pyc.mux %v549, %v548, %v535 : i32
+  %v551 = pyc.alias %v550 {pyc.name = "sra__rv32i_cpu__L151"} : i32
+  %v552 = pyc.mux %v344, %v551, %v470 : i32
+  %v553 = pyc.alias %v552 {pyc.name = "sr_r__rv32i_cpu__L153"} : i32
+  %v554 = pyc.and %v344, %v345 : i1
+  %v555 = pyc.alias %v554 {pyc.name = "is_sub__rv32i_cpu__L156"} : i1
+  %v556 = pyc.mux %v555, %v360, %v357 : i32
+  %v557 = pyc.alias %v556 {pyc.name = "alu__rv32i_cpu__L157"} : i32
+  %v558 = pyc.constant 1 : i3
+  %v559 = pyc.eq %v343, %v558 : i3
+  %v560 = pyc.mux %v559, %v419, %v557 : i32
+  %v561 = pyc.alias %v560 {pyc.name = "alu__rv32i_cpu__L158"} : i32
+  %v562 = pyc.constant 2 : i3
+  %v563 = pyc.eq %v343, %v562 : i3
+  %v564 = pyc.mux %v563, %v381, %v561 : i32
+  %v565 = pyc.alias %v564 {pyc.name = "alu__rv32i_cpu__L159"} : i32
+  %v566 = pyc.constant 3 : i3
+  %v567 = pyc.eq %v343, %v566 : i3
+  %v568 = pyc.mux %v567, %v386, %v565 : i32
+  %v569 = pyc.alias %v568 {pyc.name = "alu__rv32i_cpu__L160"} : i32
+  %v570 = pyc.constant 4 : i3
+  %v571 = pyc.eq %v343, %v570 : i3
+  %v572 = pyc.mux %v571, %v366, %v569 : i32
+  %v573 = pyc.alias %v572 {pyc.name = "alu__rv32i_cpu__L161"} : i32
+  %v574 = pyc.constant 5 : i3
+  %v575 = pyc.eq %v343, %v574 : i3
+  %v576 = pyc.mux %v575, %v553, %v573 : i32
+  %v577 = pyc.alias %v576 {pyc.name = "alu__rv32i_cpu__L162"} : i32
+  %v578 = pyc.constant 6 : i3
+  %v579 = pyc.eq %v343, %v578 : i3
+  %v580 = pyc.mux %v579, %v364, %v577 : i32
+  %v581 = pyc.alias %v580 {pyc.name = "alu__rv32i_cpu__L163"} : i32
+  %v582 = pyc.constant 7 : i3
+  %v583 = pyc.eq %v343, %v582 : i3
+  %v584 = pyc.mux %v583, %v362, %v581 : i32
+  %v585 = pyc.alias %v584 {pyc.name = "alu__rv32i_cpu__L164"} : i32
+  %v586 = pyc.add %v338, %v341 : i32
+  %v587 = pyc.extract %v586 {lsb = 0} : i32 -> i32
+  %v588 = pyc.alias %v587 {pyc.name = "br_tgt__rv32i_cpu__L167"} : i32
+  %v589 = pyc.add %v339, %v341 : i32
+  %v590 = pyc.constant 4294967294 : i32
+  %v591 = pyc.and %v589, %v590 : i32
+  %v592 = pyc.extract %v591 {lsb = 0} : i32 -> i32
+  %v593 = pyc.alias %v592 {pyc.name = "jalr_tgt__rv32i_cpu__L168"} : i32
+  %v594 = pyc.constant 4 : i32
+  %v595 = pyc.add %v338, %v594 : i32
+  %v596 = pyc.extract %v595 {lsb = 0} : i32 -> i32
+  %v597 = pyc.alias %v596 {pyc.name = "ret_addr__rv32i_cpu__L169"} : i32
+  %v598 = pyc.eq %v339, %v340 : i32
+  %v599 = pyc.alias %v598 {pyc.name = "eq_f__rv32i_cpu__L171"} : i1
+  %v600 = pyc.not %v599 : i1
+  %v601 = pyc.alias %v600 {pyc.name = "ne_f__rv32i_cpu__L172"} : i1
+  %v602 = pyc.extract %v339 {lsb = 31} : i32 -> i1
+  %v603 = pyc.alias %v602 {pyc.name = "sa2__rv32i_cpu__L173"} : i1
+  %v604 = pyc.extract %v340 {lsb = 31} : i32 -> i1
+  %v605 = pyc.alias %v604 {pyc.name = "sb2__rv32i_cpu__L174"} : i1
+  %v606 = pyc.xor %v603, %v605 : i1
+  %v607 = pyc.alias %v606 {pyc.name = "sd2__rv32i_cpu__L175"} : i1
+  %v608 = pyc.ult %v339, %v340 : i32
+  %v609 = pyc.alias %v608 {pyc.name = "ult2__rv32i_cpu__L176"} : i1
+  %v610 = pyc.mux %v607, %v603, %v609 : i1
+  %v611 = pyc.alias %v610 {pyc.name = "lt_f__rv32i_cpu__L177"} : i1
+  %v612 = pyc.not %v611 : i1
+  %v613 = pyc.alias %v612 {pyc.name = "ge_f__rv32i_cpu__L178"} : i1
+  %v614 = pyc.constant 0 : i3
+  %v615 = pyc.eq %v343, %v614 : i3
+  %v616 = pyc.constant 0 : i1
+  %v617 = pyc.mux %v615, %v599, %v616 : i1
+  %v618 = pyc.alias %v617 {pyc.name = "br_cond__rv32i_cpu__L181"} : i1
+  %v619 = pyc.constant 1 : i3
+  %v620 = pyc.eq %v343, %v619 : i3
+  %v621 = pyc.mux %v620, %v601, %v618 : i1
+  %v622 = pyc.alias %v621 {pyc.name = "br_cond__rv32i_cpu__L182"} : i1
+  %v623 = pyc.constant 4 : i3
+  %v624 = pyc.eq %v343, %v623 : i3
+  %v625 = pyc.mux %v624, %v611, %v622 : i1
+  %v626 = pyc.alias %v625 {pyc.name = "br_cond__rv32i_cpu__L183"} : i1
+  %v627 = pyc.constant 5 : i3
+  %v628 = pyc.eq %v343, %v627 : i3
+  %v629 = pyc.mux %v628, %v613, %v626 : i1
+  %v630 = pyc.alias %v629 {pyc.name = "br_cond__rv32i_cpu__L184"} : i1
+  %v631 = pyc.constant 6 : i3
+  %v632 = pyc.eq %v343, %v631 : i3
+  %v633 = pyc.mux %v632, %v609, %v630 : i1
+  %v634 = pyc.alias %v633 {pyc.name = "br_cond__rv32i_cpu__L185"} : i1
+  %v635 = pyc.constant 7 : i3
+  %v636 = pyc.eq %v343, %v635 : i3
+  %v637 = pyc.not %v609 : i1
+  %v638 = pyc.mux %v636, %v637, %v634 : i1
+  %v639 = pyc.alias %v638 {pyc.name = "br_cond__rv32i_cpu__L186"} : i1
+  %v640 = pyc.and %v337, %v348 : i1
+  %v641 = pyc.and %v640, %v639 : i1
+  %v642 = pyc.alias %v641 {pyc.name = "br_taken__rv32i_cpu__L188"} : i1
+  %v643 = pyc.and %v337, %v349 : i1
+  %v644 = pyc.alias %v643 {pyc.name = "j_taken__rv32i_cpu__L189"} : i1
+  %v645 = pyc.and %v337, %v350 : i1
+  %v646 = pyc.alias %v645 {pyc.name = "jr_taken__rv32i_cpu__L190"} : i1
+  %v647 = pyc.or %v642, %v644 : i1
+  %v648 = pyc.or %v647, %v646 : i1
+  %v649 = pyc.alias %v648 {pyc.name = "flush__rv32i_cpu__L191"} : i1
+  %v650 = pyc.alias %v588 {pyc.name = "redir__rv32i_cpu__L193"} : i32
+  %v651 = pyc.mux %v646, %v593, %v650 : i32
+  %v652 = pyc.alias %v651 {pyc.name = "redir__rv32i_cpu__L194"} : i32
+  %v653 = pyc.alias %v585 {pyc.name = "ex_res__rv32i_cpu__L197"} : i32
+  %v654 = pyc.mux %v351, %v341, %v653 : i32
+  %v655 = pyc.alias %v654 {pyc.name = "ex_res__rv32i_cpu__L198"} : i32
+  %v656 = pyc.add %v338, %v341 : i32
+  %v657 = pyc.extract %v656 {lsb = 0} : i32 -> i32
+  %v658 = pyc.mux %v352, %v657, %v655 : i32
+  %v659 = pyc.alias %v658 {pyc.name = "ex_res__rv32i_cpu__L199"} : i32
+  %v660 = pyc.or %v349, %v350 : i1
+  %v661 = pyc.mux %v660, %v597, %v659 : i32
+  %v662 = pyc.alias %v661 {pyc.name = "ex_res__rv32i_cpu__L200"} : i32
+  %v663 = pyc.or %v346, %v347 : i1
+  %v664 = pyc.add %v339, %v341 : i32
+  %v665 = pyc.extract %v664 {lsb = 0} : i32 -> i32
+  %v666 = pyc.mux %v663, %v665, %v662 : i32
+  %v667 = pyc.alias %v666 {pyc.name = "ex_res__rv32i_cpu__L201"} : i32
+  %v668 = pyc.alias %v288 {pyc.name = "m_v__rv32i_cpu__L206"} : i1
+  %v669 = pyc.alias %v294 {pyc.name = "m_rd__rv32i_cpu__L207"} : i5
+  %v670 = pyc.alias %v300 {pyc.name = "m_res__rv32i_cpu__L208"} : i32
+  %v671 = pyc.alias %v306 {pyc.name = "m_rs2__rv32i_cpu__L209"} : i32
+  %v672 = pyc.alias %v312 {pyc.name = "m_ld__rv32i_cpu__L210"} : i1
+  %v673 = pyc.alias %v318 {pyc.name = "m_st__rv32i_cpu__L211"} : i1
+  %v674 = pyc.mux %v672, %v2, %v670 : i32
+  %v675 = pyc.alias %v674 {pyc.name = "mem_result__rv32i_cpu__L213"} : i32
+  %v676 = pyc.alias %v324 {pyc.name = "wb_v__rv32i_cpu__L218"} : i1
+  %v677 = pyc.alias %v330 {pyc.name = "wb_rd__rv32i_cpu__L219"} : i5
+  %v678 = pyc.alias %v336 {pyc.name = "wb_data__rv32i_cpu__L220"} : i32
+  %v679 = pyc.constant 0 : i5
+  %v680 = pyc.eq %v677, %v679 : i5
+  %v681 = pyc.not %v680 : i1
+  %v682 = pyc.and %v676, %v681 : i1
+  %v683 = pyc.alias %v682 {pyc.name = "wb_wen__rv32i_cpu__L221"} : i1
+  %v684 = pyc.alias %v168 {pyc.name = "pc_val__rv32i_cpu__L226"} : i32
+  %v685 = pyc.constant 4 : i32
+  %v686 = pyc.add %v684, %v685 : i32
+  %v687 = pyc.extract %v686 {lsb = 0} : i32 -> i32
+  %v688 = pyc.alias %v687 {pyc.name = "pc_plus4__rv32i_cpu__L227"} : i32
+  %v689 = pyc.mux %v649, %v652, %v688 : i32
+  %v690 = pyc.alias %v689 {pyc.name = "pc_next__rv32i_cpu__L228"} : i32
+  %v691 = pyc.alias %v174 {pyc.name = "id_v__rv32i_cpu__L233"} : i1
+  %v692 = pyc.alias %v180 {pyc.name = "id_pc__rv32i_cpu__L234"} : i32
+  %v693 = pyc.alias %v186 {pyc.name = "id_inst__rv32i_cpu__L235"} : i32
+  %v694 = pyc.extract %v693 {lsb = 0} : i32 -> i7
+  %v695 = pyc.alias %v694 {pyc.name = "opcode__rv32i_cpu__L237"} : i7
+  %v696 = pyc.extract %v693 {lsb = 7} : i32 -> i5
+  %v697 = pyc.alias %v696 {pyc.name = "rd_f__rv32i_cpu__L238"} : i5
+  %v698 = pyc.extract %v693 {lsb = 12} : i32 -> i3
+  %v699 = pyc.alias %v698 {pyc.name = "f3__rv32i_cpu__L239"} : i3
+  %v700 = pyc.extract %v693 {lsb = 15} : i32 -> i5
+  %v701 = pyc.alias %v700 {pyc.name = "rs1_f__rv32i_cpu__L240"} : i5
+  %v702 = pyc.extract %v693 {lsb = 20} : i32 -> i5
+  %v703 = pyc.alias %v702 {pyc.name = "rs2_f__rv32i_cpu__L241"} : i5
+  %v704 = pyc.extract %v693 {lsb = 30} : i32 -> i1
+  %v705 = pyc.alias %v704 {pyc.name = "f7b5__rv32i_cpu__L242"} : i1
+  %v706 = pyc.constant 55 : i7
+  %v707 = pyc.eq %v695, %v706 : i7
+  %v708 = pyc.alias %v707 {pyc.name = "is_lui__rv32i_cpu__L244"} : i1
+  %v709 = pyc.constant 23 : i7
+  %v710 = pyc.eq %v695, %v709 : i7
+  %v711 = pyc.alias %v710 {pyc.name = "is_auipc__rv32i_cpu__L245"} : i1
+  %v712 = pyc.constant 111 : i7
+  %v713 = pyc.eq %v695, %v712 : i7
+  %v714 = pyc.alias %v713 {pyc.name = "is_jal__rv32i_cpu__L246"} : i1
+  %v715 = pyc.constant 103 : i7
+  %v716 = pyc.eq %v695, %v715 : i7
+  %v717 = pyc.alias %v716 {pyc.name = "is_jalr__rv32i_cpu__L247"} : i1
+  %v718 = pyc.constant 99 : i7
+  %v719 = pyc.eq %v695, %v718 : i7
+  %v720 = pyc.alias %v719 {pyc.name = "is_br__rv32i_cpu__L248"} : i1
+  %v721 = pyc.constant 3 : i7
+  %v722 = pyc.eq %v695, %v721 : i7
+  %v723 = pyc.alias %v722 {pyc.name = "is_ld__rv32i_cpu__L249"} : i1
+  %v724 = pyc.constant 35 : i7
+  %v725 = pyc.eq %v695, %v724 : i7
+  %v726 = pyc.alias %v725 {pyc.name = "is_st__rv32i_cpu__L250"} : i1
+  %v727 = pyc.constant 19 : i7
+  %v728 = pyc.eq %v695, %v727 : i7
+  %v729 = pyc.alias %v728 {pyc.name = "is_alui__rv32i_cpu__L251"} : i1
+  %v730 = pyc.constant 51 : i7
+  %v731 = pyc.eq %v695, %v730 : i7
+  %v732 = pyc.alias %v731 {pyc.name = "is_alur__rv32i_cpu__L252"} : i1
+  %v733 = pyc.extract %v693 {lsb = 20} : i32 -> i12
+  %v734 = pyc.alias %v733 {pyc.name = "i_raw__rv32i_cpu__L257"} : i12
+  %v735 = pyc.constant 0 : i32
+  %v736 = pyc.zext %v734 : i12 -> i32
+  %v737 = pyc.add %v736, %v735 : i32
+  %v738 = pyc.extract %v737 {lsb = 0} : i32 -> i32
+  %v739 = pyc.alias %v738 {pyc.name = "i_z__rv32i_cpu__L258"} : i32
+  %v740 = pyc.extract %v734 {lsb = 11} : i12 -> i1
+  %v741 = pyc.constant 4294963200 : i32
+  %v742 = pyc.or %v739, %v741 : i32
+  %v743 = pyc.mux %v740, %v742, %v739 : i32
+  %v744 = pyc.alias %v743 {pyc.name = "imm_i__rv32i_cpu__L259"} : i32
+  %v745 = pyc.extract %v693 {lsb = 25} : i32 -> i7
+  %v746 = pyc.constant 0 : i32
+  %v747 = pyc.zext %v745 : i7 -> i32
+  %v748 = pyc.add %v747, %v746 : i32
+  %v749 = pyc.extract %v748 {lsb = 0} : i32 -> i32
+  %v750 = pyc.alias %v749 {pyc.name = "s_hi__rv32i_cpu__L262"} : i32
+  %v751 = pyc.extract %v693 {lsb = 7} : i32 -> i5
+  %v752 = pyc.constant 0 : i32
+  %v753 = pyc.zext %v751 : i5 -> i32
+  %v754 = pyc.add %v753, %v752 : i32
+  %v755 = pyc.extract %v754 {lsb = 0} : i32 -> i32
+  %v756 = pyc.alias %v755 {pyc.name = "s_lo__rv32i_cpu__L263"} : i32
+  %v757 = pyc.shli %v750 {amount = 5} : i32
+  %v758 = pyc.or %v757, %v756 : i32
+  %v759 = pyc.extract %v758 {lsb = 0} : i32 -> i12
+  %v760 = pyc.alias %v759 {pyc.name = "s_raw__rv32i_cpu__L264"} : i12
+  %v761 = pyc.constant 0 : i32
+  %v762 = pyc.zext %v760 : i12 -> i32
+  %v763 = pyc.add %v762, %v761 : i32
+  %v764 = pyc.extract %v763 {lsb = 0} : i32 -> i32
+  %v765 = pyc.alias %v764 {pyc.name = "s_z__rv32i_cpu__L265"} : i32
+  %v766 = pyc.extract %v760 {lsb = 11} : i12 -> i1
+  %v767 = pyc.constant 4294963200 : i32
+  %v768 = pyc.or %v765, %v767 : i32
+  %v769 = pyc.mux %v766, %v768, %v765 : i32
+  %v770 = pyc.alias %v769 {pyc.name = "imm_s__rv32i_cpu__L266"} : i32
+  %v771 = pyc.extract %v693 {lsb = 31} : i32 -> i1
+  %v772 = pyc.constant 0 : i32
+  %v773 = pyc.zext %v771 : i1 -> i32
+  %v774 = pyc.add %v773, %v772 : i32
+  %v775 = pyc.extract %v774 {lsb = 0} : i32 -> i32
+  %v776 = pyc.alias %v775 {pyc.name = "b12__rv32i_cpu__L269"} : i32
+  %v777 = pyc.extract %v693 {lsb = 7} : i32 -> i1
+  %v778 = pyc.constant 0 : i32
+  %v779 = pyc.zext %v777 : i1 -> i32
+  %v780 = pyc.add %v779, %v778 : i32
+  %v781 = pyc.extract %v780 {lsb = 0} : i32 -> i32
+  %v782 = pyc.alias %v781 {pyc.name = "b11__rv32i_cpu__L270"} : i32
+  %v783 = pyc.extract %v693 {lsb = 25} : i32 -> i6
+  %v784 = pyc.constant 0 : i32
+  %v785 = pyc.zext %v783 : i6 -> i32
+  %v786 = pyc.add %v785, %v784 : i32
+  %v787 = pyc.extract %v786 {lsb = 0} : i32 -> i32
+  %v788 = pyc.alias %v787 {pyc.name = "b10_5__rv32i_cpu__L271"} : i32
+  %v789 = pyc.extract %v693 {lsb = 8} : i32 -> i4
+  %v790 = pyc.constant 0 : i32
+  %v791 = pyc.zext %v789 : i4 -> i32
+  %v792 = pyc.add %v791, %v790 : i32
+  %v793 = pyc.extract %v792 {lsb = 0} : i32 -> i32
+  %v794 = pyc.alias %v793 {pyc.name = "b4_1__rv32i_cpu__L272"} : i32
+  %v795 = pyc.shli %v776 {amount = 12} : i32
+  %v796 = pyc.shli %v782 {amount = 11} : i32
+  %v797 = pyc.or %v795, %v796 : i32
+  %v798 = pyc.shli %v788 {amount = 5} : i32
+  %v799 = pyc.or %v797, %v798 : i32
+  %v800 = pyc.shli %v794 {amount = 1} : i32
+  %v801 = pyc.or %v799, %v800 : i32
+  %v802 = pyc.extract %v801 {lsb = 0} : i32 -> i32
+  %v803 = pyc.alias %v802 {pyc.name = "imm_b_raw__rv32i_cpu__L273"} : i32
+  %v804 = pyc.extract %v693 {lsb = 31} : i32 -> i1
+  %v805 = pyc.alias %v804 {pyc.name = "imm_b_sign__rv32i_cpu__L274"} : i1
+  %v806 = pyc.constant 4294959104 : i32
+  %v807 = pyc.or %v803, %v806 : i32
+  %v808 = pyc.mux %v805, %v807, %v803 : i32
+  %v809 = pyc.alias %v808 {pyc.name = "imm_b__rv32i_cpu__L275"} : i32
+  %v810 = pyc.extract %v693 {lsb = 12} : i32 -> i20
+  %v811 = pyc.constant 0 : i32
+  %v812 = pyc.zext %v810 : i20 -> i32
+  %v813 = pyc.add %v812, %v811 : i32
+  %v814 = pyc.shli %v813 {amount = 12} : i32
+  %v815 = pyc.extract %v814 {lsb = 0} : i32 -> i32
+  %v816 = pyc.alias %v815 {pyc.name = "imm_u__rv32i_cpu__L278"} : i32
+  %v817 = pyc.extract %v693 {lsb = 31} : i32 -> i1
+  %v818 = pyc.constant 0 : i32
+  %v819 = pyc.zext %v817 : i1 -> i32
+  %v820 = pyc.add %v819, %v818 : i32
+  %v821 = pyc.extract %v820 {lsb = 0} : i32 -> i32
+  %v822 = pyc.alias %v821 {pyc.name = "j20__rv32i_cpu__L281"} : i32
+  %v823 = pyc.extract %v693 {lsb = 12} : i32 -> i8
+  %v824 = pyc.constant 0 : i32
+  %v825 = pyc.zext %v823 : i8 -> i32
+  %v826 = pyc.add %v825, %v824 : i32
+  %v827 = pyc.extract %v826 {lsb = 0} : i32 -> i32
+  %v828 = pyc.alias %v827 {pyc.name = "j19_12__rv32i_cpu__L282"} : i32
+  %v829 = pyc.extract %v693 {lsb = 20} : i32 -> i1
+  %v830 = pyc.constant 0 : i32
+  %v831 = pyc.zext %v829 : i1 -> i32
+  %v832 = pyc.add %v831, %v830 : i32
+  %v833 = pyc.extract %v832 {lsb = 0} : i32 -> i32
+  %v834 = pyc.alias %v833 {pyc.name = "j11__rv32i_cpu__L283"} : i32
+  %v835 = pyc.extract %v693 {lsb = 21} : i32 -> i10
+  %v836 = pyc.constant 0 : i32
+  %v837 = pyc.zext %v835 : i10 -> i32
+  %v838 = pyc.add %v837, %v836 : i32
+  %v839 = pyc.extract %v838 {lsb = 0} : i32 -> i32
+  %v840 = pyc.alias %v839 {pyc.name = "j10_1__rv32i_cpu__L284"} : i32
+  %v841 = pyc.shli %v822 {amount = 20} : i32
+  %v842 = pyc.shli %v828 {amount = 12} : i32
+  %v843 = pyc.or %v841, %v842 : i32
+  %v844 = pyc.shli %v834 {amount = 11} : i32
+  %v845 = pyc.or %v843, %v844 : i32
+  %v846 = pyc.shli %v840 {amount = 1} : i32
+  %v847 = pyc.or %v845, %v846 : i32
+  %v848 = pyc.extract %v847 {lsb = 0} : i32 -> i32
+  %v849 = pyc.alias %v848 {pyc.name = "imm_j_raw__rv32i_cpu__L285"} : i32
+  %v850 = pyc.extract %v693 {lsb = 31} : i32 -> i1
+  %v851 = pyc.alias %v850 {pyc.name = "imm_j_sign__rv32i_cpu__L286"} : i1
+  %v852 = pyc.constant 4292870144 : i32
+  %v853 = pyc.or %v849, %v852 : i32
+  %v854 = pyc.mux %v851, %v853, %v849 : i32
+  %v855 = pyc.alias %v854 {pyc.name = "imm_j__rv32i_cpu__L287"} : i32
+  %v856 = pyc.alias %v744 {pyc.name = "imm__rv32i_cpu__L290"} : i32
+  %v857 = pyc.mux %v726, %v770, %v856 : i32
+  %v858 = pyc.alias %v857 {pyc.name = "imm__rv32i_cpu__L291"} : i32
+  %v859 = pyc.mux %v720, %v809, %v858 : i32
+  %v860 = pyc.alias %v859 {pyc.name = "imm__rv32i_cpu__L292"} : i32
+  %v861 = pyc.or %v708, %v711 : i1
+  %v862 = pyc.mux %v861, %v816, %v860 : i32
+  %v863 = pyc.alias %v862 {pyc.name = "imm__rv32i_cpu__L293"} : i32
+  %v864 = pyc.mux %v714, %v855, %v863 : i32
+  %v865 = pyc.alias %v864 {pyc.name = "imm__rv32i_cpu__L294"} : i32
+  %v866 = pyc.constant 1 : i5
+  %v867 = pyc.eq %v701, %v866 : i5
+  %v868 = pyc.constant 0 : i32
+  %v869 = pyc.mux %v867, %v12, %v868 : i32
+  %v870 = pyc.alias %v869 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v871 = pyc.constant 2 : i5
+  %v872 = pyc.eq %v701, %v871 : i5
+  %v873 = pyc.mux %v872, %v17, %v870 : i32
+  %v874 = pyc.alias %v873 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v875 = pyc.constant 3 : i5
+  %v876 = pyc.eq %v701, %v875 : i5
+  %v877 = pyc.mux %v876, %v22, %v874 : i32
+  %v878 = pyc.alias %v877 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v879 = pyc.constant 4 : i5
+  %v880 = pyc.eq %v701, %v879 : i5
+  %v881 = pyc.mux %v880, %v27, %v878 : i32
+  %v882 = pyc.alias %v881 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v883 = pyc.constant 5 : i5
+  %v884 = pyc.eq %v701, %v883 : i5
+  %v885 = pyc.mux %v884, %v32, %v882 : i32
+  %v886 = pyc.alias %v885 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v887 = pyc.constant 6 : i5
+  %v888 = pyc.eq %v701, %v887 : i5
+  %v889 = pyc.mux %v888, %v37, %v886 : i32
+  %v890 = pyc.alias %v889 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v891 = pyc.constant 7 : i5
+  %v892 = pyc.eq %v701, %v891 : i5
+  %v893 = pyc.mux %v892, %v42, %v890 : i32
+  %v894 = pyc.alias %v893 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v895 = pyc.constant 8 : i5
+  %v896 = pyc.eq %v701, %v895 : i5
+  %v897 = pyc.mux %v896, %v47, %v894 : i32
+  %v898 = pyc.alias %v897 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v899 = pyc.constant 9 : i5
+  %v900 = pyc.eq %v701, %v899 : i5
+  %v901 = pyc.mux %v900, %v52, %v898 : i32
+  %v902 = pyc.alias %v901 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v903 = pyc.constant 10 : i5
+  %v904 = pyc.eq %v701, %v903 : i5
+  %v905 = pyc.mux %v904, %v57, %v902 : i32
+  %v906 = pyc.alias %v905 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v907 = pyc.constant 11 : i5
+  %v908 = pyc.eq %v701, %v907 : i5
+  %v909 = pyc.mux %v908, %v62, %v906 : i32
+  %v910 = pyc.alias %v909 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v911 = pyc.constant 12 : i5
+  %v912 = pyc.eq %v701, %v911 : i5
+  %v913 = pyc.mux %v912, %v67, %v910 : i32
+  %v914 = pyc.alias %v913 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v915 = pyc.constant 13 : i5
+  %v916 = pyc.eq %v701, %v915 : i5
+  %v917 = pyc.mux %v916, %v72, %v914 : i32
+  %v918 = pyc.alias %v917 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v919 = pyc.constant 14 : i5
+  %v920 = pyc.eq %v701, %v919 : i5
+  %v921 = pyc.mux %v920, %v77, %v918 : i32
+  %v922 = pyc.alias %v921 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v923 = pyc.constant 15 : i5
+  %v924 = pyc.eq %v701, %v923 : i5
+  %v925 = pyc.mux %v924, %v82, %v922 : i32
+  %v926 = pyc.alias %v925 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v927 = pyc.constant 16 : i5
+  %v928 = pyc.eq %v701, %v927 : i5
+  %v929 = pyc.mux %v928, %v87, %v926 : i32
+  %v930 = pyc.alias %v929 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v931 = pyc.constant 17 : i5
+  %v932 = pyc.eq %v701, %v931 : i5
+  %v933 = pyc.mux %v932, %v92, %v930 : i32
+  %v934 = pyc.alias %v933 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v935 = pyc.constant 18 : i5
+  %v936 = pyc.eq %v701, %v935 : i5
+  %v937 = pyc.mux %v936, %v97, %v934 : i32
+  %v938 = pyc.alias %v937 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v939 = pyc.constant 19 : i5
+  %v940 = pyc.eq %v701, %v939 : i5
+  %v941 = pyc.mux %v940, %v102, %v938 : i32
+  %v942 = pyc.alias %v941 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v943 = pyc.constant 20 : i5
+  %v944 = pyc.eq %v701, %v943 : i5
+  %v945 = pyc.mux %v944, %v107, %v942 : i32
+  %v946 = pyc.alias %v945 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v947 = pyc.constant 21 : i5
+  %v948 = pyc.eq %v701, %v947 : i5
+  %v949 = pyc.mux %v948, %v112, %v946 : i32
+  %v950 = pyc.alias %v949 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v951 = pyc.constant 22 : i5
+  %v952 = pyc.eq %v701, %v951 : i5
+  %v953 = pyc.mux %v952, %v117, %v950 : i32
+  %v954 = pyc.alias %v953 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v955 = pyc.constant 23 : i5
+  %v956 = pyc.eq %v701, %v955 : i5
+  %v957 = pyc.mux %v956, %v122, %v954 : i32
+  %v958 = pyc.alias %v957 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v959 = pyc.constant 24 : i5
+  %v960 = pyc.eq %v701, %v959 : i5
+  %v961 = pyc.mux %v960, %v127, %v958 : i32
+  %v962 = pyc.alias %v961 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v963 = pyc.constant 25 : i5
+  %v964 = pyc.eq %v701, %v963 : i5
+  %v965 = pyc.mux %v964, %v132, %v962 : i32
+  %v966 = pyc.alias %v965 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v967 = pyc.constant 26 : i5
+  %v968 = pyc.eq %v701, %v967 : i5
+  %v969 = pyc.mux %v968, %v137, %v966 : i32
+  %v970 = pyc.alias %v969 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v971 = pyc.constant 27 : i5
+  %v972 = pyc.eq %v701, %v971 : i5
+  %v973 = pyc.mux %v972, %v142, %v970 : i32
+  %v974 = pyc.alias %v973 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v975 = pyc.constant 28 : i5
+  %v976 = pyc.eq %v701, %v975 : i5
+  %v977 = pyc.mux %v976, %v147, %v974 : i32
+  %v978 = pyc.alias %v977 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v979 = pyc.constant 29 : i5
+  %v980 = pyc.eq %v701, %v979 : i5
+  %v981 = pyc.mux %v980, %v152, %v978 : i32
+  %v982 = pyc.alias %v981 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v983 = pyc.constant 30 : i5
+  %v984 = pyc.eq %v701, %v983 : i5
+  %v985 = pyc.mux %v984, %v157, %v982 : i32
+  %v986 = pyc.alias %v985 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v987 = pyc.constant 31 : i5
+  %v988 = pyc.eq %v701, %v987 : i5
+  %v989 = pyc.mux %v988, %v162, %v986 : i32
+  %v990 = pyc.alias %v989 {pyc.name = "rs1_val__rv32i_cpu__L299"} : i32
+  %v991 = pyc.constant 1 : i5
+  %v992 = pyc.eq %v703, %v991 : i5
+  %v993 = pyc.constant 0 : i32
+  %v994 = pyc.mux %v992, %v12, %v993 : i32
+  %v995 = pyc.alias %v994 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v996 = pyc.constant 2 : i5
+  %v997 = pyc.eq %v703, %v996 : i5
+  %v998 = pyc.mux %v997, %v17, %v995 : i32
+  %v999 = pyc.alias %v998 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1000 = pyc.constant 3 : i5
+  %v1001 = pyc.eq %v703, %v1000 : i5
+  %v1002 = pyc.mux %v1001, %v22, %v999 : i32
+  %v1003 = pyc.alias %v1002 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1004 = pyc.constant 4 : i5
+  %v1005 = pyc.eq %v703, %v1004 : i5
+  %v1006 = pyc.mux %v1005, %v27, %v1003 : i32
+  %v1007 = pyc.alias %v1006 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1008 = pyc.constant 5 : i5
+  %v1009 = pyc.eq %v703, %v1008 : i5
+  %v1010 = pyc.mux %v1009, %v32, %v1007 : i32
+  %v1011 = pyc.alias %v1010 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1012 = pyc.constant 6 : i5
+  %v1013 = pyc.eq %v703, %v1012 : i5
+  %v1014 = pyc.mux %v1013, %v37, %v1011 : i32
+  %v1015 = pyc.alias %v1014 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1016 = pyc.constant 7 : i5
+  %v1017 = pyc.eq %v703, %v1016 : i5
+  %v1018 = pyc.mux %v1017, %v42, %v1015 : i32
+  %v1019 = pyc.alias %v1018 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1020 = pyc.constant 8 : i5
+  %v1021 = pyc.eq %v703, %v1020 : i5
+  %v1022 = pyc.mux %v1021, %v47, %v1019 : i32
+  %v1023 = pyc.alias %v1022 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1024 = pyc.constant 9 : i5
+  %v1025 = pyc.eq %v703, %v1024 : i5
+  %v1026 = pyc.mux %v1025, %v52, %v1023 : i32
+  %v1027 = pyc.alias %v1026 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1028 = pyc.constant 10 : i5
+  %v1029 = pyc.eq %v703, %v1028 : i5
+  %v1030 = pyc.mux %v1029, %v57, %v1027 : i32
+  %v1031 = pyc.alias %v1030 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1032 = pyc.constant 11 : i5
+  %v1033 = pyc.eq %v703, %v1032 : i5
+  %v1034 = pyc.mux %v1033, %v62, %v1031 : i32
+  %v1035 = pyc.alias %v1034 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1036 = pyc.constant 12 : i5
+  %v1037 = pyc.eq %v703, %v1036 : i5
+  %v1038 = pyc.mux %v1037, %v67, %v1035 : i32
+  %v1039 = pyc.alias %v1038 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1040 = pyc.constant 13 : i5
+  %v1041 = pyc.eq %v703, %v1040 : i5
+  %v1042 = pyc.mux %v1041, %v72, %v1039 : i32
+  %v1043 = pyc.alias %v1042 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1044 = pyc.constant 14 : i5
+  %v1045 = pyc.eq %v703, %v1044 : i5
+  %v1046 = pyc.mux %v1045, %v77, %v1043 : i32
+  %v1047 = pyc.alias %v1046 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1048 = pyc.constant 15 : i5
+  %v1049 = pyc.eq %v703, %v1048 : i5
+  %v1050 = pyc.mux %v1049, %v82, %v1047 : i32
+  %v1051 = pyc.alias %v1050 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1052 = pyc.constant 16 : i5
+  %v1053 = pyc.eq %v703, %v1052 : i5
+  %v1054 = pyc.mux %v1053, %v87, %v1051 : i32
+  %v1055 = pyc.alias %v1054 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1056 = pyc.constant 17 : i5
+  %v1057 = pyc.eq %v703, %v1056 : i5
+  %v1058 = pyc.mux %v1057, %v92, %v1055 : i32
+  %v1059 = pyc.alias %v1058 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1060 = pyc.constant 18 : i5
+  %v1061 = pyc.eq %v703, %v1060 : i5
+  %v1062 = pyc.mux %v1061, %v97, %v1059 : i32
+  %v1063 = pyc.alias %v1062 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1064 = pyc.constant 19 : i5
+  %v1065 = pyc.eq %v703, %v1064 : i5
+  %v1066 = pyc.mux %v1065, %v102, %v1063 : i32
+  %v1067 = pyc.alias %v1066 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1068 = pyc.constant 20 : i5
+  %v1069 = pyc.eq %v703, %v1068 : i5
+  %v1070 = pyc.mux %v1069, %v107, %v1067 : i32
+  %v1071 = pyc.alias %v1070 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1072 = pyc.constant 21 : i5
+  %v1073 = pyc.eq %v703, %v1072 : i5
+  %v1074 = pyc.mux %v1073, %v112, %v1071 : i32
+  %v1075 = pyc.alias %v1074 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1076 = pyc.constant 22 : i5
+  %v1077 = pyc.eq %v703, %v1076 : i5
+  %v1078 = pyc.mux %v1077, %v117, %v1075 : i32
+  %v1079 = pyc.alias %v1078 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1080 = pyc.constant 23 : i5
+  %v1081 = pyc.eq %v703, %v1080 : i5
+  %v1082 = pyc.mux %v1081, %v122, %v1079 : i32
+  %v1083 = pyc.alias %v1082 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1084 = pyc.constant 24 : i5
+  %v1085 = pyc.eq %v703, %v1084 : i5
+  %v1086 = pyc.mux %v1085, %v127, %v1083 : i32
+  %v1087 = pyc.alias %v1086 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1088 = pyc.constant 25 : i5
+  %v1089 = pyc.eq %v703, %v1088 : i5
+  %v1090 = pyc.mux %v1089, %v132, %v1087 : i32
+  %v1091 = pyc.alias %v1090 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1092 = pyc.constant 26 : i5
+  %v1093 = pyc.eq %v703, %v1092 : i5
+  %v1094 = pyc.mux %v1093, %v137, %v1091 : i32
+  %v1095 = pyc.alias %v1094 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1096 = pyc.constant 27 : i5
+  %v1097 = pyc.eq %v703, %v1096 : i5
+  %v1098 = pyc.mux %v1097, %v142, %v1095 : i32
+  %v1099 = pyc.alias %v1098 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1100 = pyc.constant 28 : i5
+  %v1101 = pyc.eq %v703, %v1100 : i5
+  %v1102 = pyc.mux %v1101, %v147, %v1099 : i32
+  %v1103 = pyc.alias %v1102 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1104 = pyc.constant 29 : i5
+  %v1105 = pyc.eq %v703, %v1104 : i5
+  %v1106 = pyc.mux %v1105, %v152, %v1103 : i32
+  %v1107 = pyc.alias %v1106 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1108 = pyc.constant 30 : i5
+  %v1109 = pyc.eq %v703, %v1108 : i5
+  %v1110 = pyc.mux %v1109, %v157, %v1107 : i32
+  %v1111 = pyc.alias %v1110 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1112 = pyc.constant 31 : i5
+  %v1113 = pyc.eq %v703, %v1112 : i5
+  %v1114 = pyc.mux %v1113, %v162, %v1111 : i32
+  %v1115 = pyc.alias %v1114 {pyc.name = "rs2_val__rv32i_cpu__L303"} : i32
+  %v1116 = pyc.constant 0 : i5
+  %v1117 = pyc.eq %v294, %v1116 : i5
+  %v1118 = pyc.not %v1117 : i1
+  %v1119 = pyc.and %v288, %v1118 : i1
+  %v1120 = pyc.not %v312 : i1
+  %v1121 = pyc.and %v1119, %v1120 : i1
+  %v1122 = pyc.alias %v1121 {pyc.name = "ex_fwd_v__rv32i_cpu__L306"} : i1
+  %v1123 = pyc.alias %v294 {pyc.name = "ex_fwd_rd__rv32i_cpu__L307"} : i5
+  %v1124 = pyc.alias %v300 {pyc.name = "ex_fwd_d__rv32i_cpu__L308"} : i32
+  %v1125 = pyc.constant 0 : i5
+  %v1126 = pyc.eq %v330, %v1125 : i5
+  %v1127 = pyc.not %v1126 : i1
+  %v1128 = pyc.and %v324, %v1127 : i1
+  %v1129 = pyc.alias %v1128 {pyc.name = "wb_fwd_v__rv32i_cpu__L310"} : i1
+  %v1130 = pyc.alias %v330 {pyc.name = "wb_fwd_rd__rv32i_cpu__L311"} : i5
+  %v1131 = pyc.alias %v336 {pyc.name = "wb_fwd_d__rv32i_cpu__L312"} : i32
+  %v1132 = pyc.eq %v1123, %v701 : i5
+  %v1133 = pyc.and %v1122, %v1132 : i1
+  %v1134 = pyc.mux %v1133, %v1124, %v990 : i32
+  %v1135 = pyc.alias %v1134 {pyc.name = "rs1_val__rv32i_cpu__L314"} : i32
+  %v1136 = pyc.eq %v1123, %v703 : i5
+  %v1137 = pyc.and %v1122, %v1136 : i1
+  %v1138 = pyc.mux %v1137, %v1124, %v1115 : i32
+  %v1139 = pyc.alias %v1138 {pyc.name = "rs2_val__rv32i_cpu__L315"} : i32
+  %v1140 = pyc.eq %v1130, %v701 : i5
+  %v1141 = pyc.and %v1129, %v1140 : i1
+  %v1142 = pyc.mux %v1141, %v1131, %v1135 : i32
+  %v1143 = pyc.alias %v1142 {pyc.name = "rs1_val__rv32i_cpu__L316"} : i32
+  %v1144 = pyc.eq %v1130, %v703 : i5
+  %v1145 = pyc.and %v1129, %v1144 : i1
+  %v1146 = pyc.mux %v1145, %v1131, %v1139 : i32
+  %v1147 = pyc.alias %v1146 {pyc.name = "rs2_val__rv32i_cpu__L317"} : i32
+  pyc.assign %v163, %v690 : i32
+  %v1148 = pyc.constant 0 : i1
+  %v1149 = pyc.constant 1 : i1
+  %v1150 = pyc.mux %v649, %v1148, %v1149 : i1
+  pyc.assign %v169, %v1150 : i1
+  pyc.assign %v175, %v684 : i32
+  pyc.assign %v181, %v1 : i32
+  %v1151 = pyc.constant 0 : i1
+  %v1152 = pyc.mux %v649, %v1151, %v691 : i1
+  %v1153 = pyc.alias %v1152 {pyc.name = "id_valid_next__rv32i_cpu__L332"} : i1
+  pyc.assign %v187, %v1153 : i1
+  pyc.assign %v193, %v692 : i32
+  pyc.assign %v199, %v1143 : i32
+  pyc.assign %v205, %v1147 : i32
+  pyc.assign %v211, %v865 : i32
+  pyc.assign %v217, %v697 : i5
+  pyc.assign %v223, %v699 : i3
+  pyc.assign %v229, %v705 : i1
+  pyc.assign %v235, %v732 : i1
+  pyc.assign %v241, %v723 : i1
+  pyc.assign %v247, %v726 : i1
+  pyc.assign %v253, %v720 : i1
+  pyc.assign %v259, %v714 : i1
+  pyc.assign %v265, %v717 : i1
+  pyc.assign %v271, %v708 : i1
+  pyc.assign %v277, %v711 : i1
+  pyc.assign %v283, %v337 : i1
+  pyc.assign %v289, %v342 : i5
+  pyc.assign %v295, %v667 : i32
+  pyc.assign %v301, %v340 : i32
+  pyc.assign %v307, %v346 : i1
+  pyc.assign %v313, %v347 : i1
+  pyc.assign %v319, %v668 : i1
+  pyc.assign %v325, %v669 : i5
+  pyc.assign %v331, %v675 : i32
+  %v1154 = pyc.constant 0 : i32
+  pyc.assign %v3, %v1154 : i32
+  %v1155 = pyc.constant 1 : i5
+  %v1156 = pyc.eq %v677, %v1155 : i5
+  %v1157 = pyc.and %v683, %v1156 : i1
+  %v1158 = pyc.mux %v1157, %v678, %v12 : i32
+  pyc.assign %v8, %v1158 : i32
+  %v1159 = pyc.constant 2 : i5
+  %v1160 = pyc.eq %v677, %v1159 : i5
+  %v1161 = pyc.and %v683, %v1160 : i1
+  %v1162 = pyc.mux %v1161, %v678, %v17 : i32
+  pyc.assign %v13, %v1162 : i32
+  %v1163 = pyc.constant 3 : i5
+  %v1164 = pyc.eq %v677, %v1163 : i5
+  %v1165 = pyc.and %v683, %v1164 : i1
+  %v1166 = pyc.mux %v1165, %v678, %v22 : i32
+  pyc.assign %v18, %v1166 : i32
+  %v1167 = pyc.constant 4 : i5
+  %v1168 = pyc.eq %v677, %v1167 : i5
+  %v1169 = pyc.and %v683, %v1168 : i1
+  %v1170 = pyc.mux %v1169, %v678, %v27 : i32
+  pyc.assign %v23, %v1170 : i32
+  %v1171 = pyc.constant 5 : i5
+  %v1172 = pyc.eq %v677, %v1171 : i5
+  %v1173 = pyc.and %v683, %v1172 : i1
+  %v1174 = pyc.mux %v1173, %v678, %v32 : i32
+  pyc.assign %v28, %v1174 : i32
+  %v1175 = pyc.constant 6 : i5
+  %v1176 = pyc.eq %v677, %v1175 : i5
+  %v1177 = pyc.and %v683, %v1176 : i1
+  %v1178 = pyc.mux %v1177, %v678, %v37 : i32
+  pyc.assign %v33, %v1178 : i32
+  %v1179 = pyc.constant 7 : i5
+  %v1180 = pyc.eq %v677, %v1179 : i5
+  %v1181 = pyc.and %v683, %v1180 : i1
+  %v1182 = pyc.mux %v1181, %v678, %v42 : i32
+  pyc.assign %v38, %v1182 : i32
+  %v1183 = pyc.constant 8 : i5
+  %v1184 = pyc.eq %v677, %v1183 : i5
+  %v1185 = pyc.and %v683, %v1184 : i1
+  %v1186 = pyc.mux %v1185, %v678, %v47 : i32
+  pyc.assign %v43, %v1186 : i32
+  %v1187 = pyc.constant 9 : i5
+  %v1188 = pyc.eq %v677, %v1187 : i5
+  %v1189 = pyc.and %v683, %v1188 : i1
+  %v1190 = pyc.mux %v1189, %v678, %v52 : i32
+  pyc.assign %v48, %v1190 : i32
+  %v1191 = pyc.constant 10 : i5
+  %v1192 = pyc.eq %v677, %v1191 : i5
+  %v1193 = pyc.and %v683, %v1192 : i1
+  %v1194 = pyc.mux %v1193, %v678, %v57 : i32
+  pyc.assign %v53, %v1194 : i32
+  %v1195 = pyc.constant 11 : i5
+  %v1196 = pyc.eq %v677, %v1195 : i5
+  %v1197 = pyc.and %v683, %v1196 : i1
+  %v1198 = pyc.mux %v1197, %v678, %v62 : i32
+  pyc.assign %v58, %v1198 : i32
+  %v1199 = pyc.constant 12 : i5
+  %v1200 = pyc.eq %v677, %v1199 : i5
+  %v1201 = pyc.and %v683, %v1200 : i1
+  %v1202 = pyc.mux %v1201, %v678, %v67 : i32
+  pyc.assign %v63, %v1202 : i32
+  %v1203 = pyc.constant 13 : i5
+  %v1204 = pyc.eq %v677, %v1203 : i5
+  %v1205 = pyc.and %v683, %v1204 : i1
+  %v1206 = pyc.mux %v1205, %v678, %v72 : i32
+  pyc.assign %v68, %v1206 : i32
+  %v1207 = pyc.constant 14 : i5
+  %v1208 = pyc.eq %v677, %v1207 : i5
+  %v1209 = pyc.and %v683, %v1208 : i1
+  %v1210 = pyc.mux %v1209, %v678, %v77 : i32
+  pyc.assign %v73, %v1210 : i32
+  %v1211 = pyc.constant 15 : i5
+  %v1212 = pyc.eq %v677, %v1211 : i5
+  %v1213 = pyc.and %v683, %v1212 : i1
+  %v1214 = pyc.mux %v1213, %v678, %v82 : i32
+  pyc.assign %v78, %v1214 : i32
+  %v1215 = pyc.constant 16 : i5
+  %v1216 = pyc.eq %v677, %v1215 : i5
+  %v1217 = pyc.and %v683, %v1216 : i1
+  %v1218 = pyc.mux %v1217, %v678, %v87 : i32
+  pyc.assign %v83, %v1218 : i32
+  %v1219 = pyc.constant 17 : i5
+  %v1220 = pyc.eq %v677, %v1219 : i5
+  %v1221 = pyc.and %v683, %v1220 : i1
+  %v1222 = pyc.mux %v1221, %v678, %v92 : i32
+  pyc.assign %v88, %v1222 : i32
+  %v1223 = pyc.constant 18 : i5
+  %v1224 = pyc.eq %v677, %v1223 : i5
+  %v1225 = pyc.and %v683, %v1224 : i1
+  %v1226 = pyc.mux %v1225, %v678, %v97 : i32
+  pyc.assign %v93, %v1226 : i32
+  %v1227 = pyc.constant 19 : i5
+  %v1228 = pyc.eq %v677, %v1227 : i5
+  %v1229 = pyc.and %v683, %v1228 : i1
+  %v1230 = pyc.mux %v1229, %v678, %v102 : i32
+  pyc.assign %v98, %v1230 : i32
+  %v1231 = pyc.constant 20 : i5
+  %v1232 = pyc.eq %v677, %v1231 : i5
+  %v1233 = pyc.and %v683, %v1232 : i1
+  %v1234 = pyc.mux %v1233, %v678, %v107 : i32
+  pyc.assign %v103, %v1234 : i32
+  %v1235 = pyc.constant 21 : i5
+  %v1236 = pyc.eq %v677, %v1235 : i5
+  %v1237 = pyc.and %v683, %v1236 : i1
+  %v1238 = pyc.mux %v1237, %v678, %v112 : i32
+  pyc.assign %v108, %v1238 : i32
+  %v1239 = pyc.constant 22 : i5
+  %v1240 = pyc.eq %v677, %v1239 : i5
+  %v1241 = pyc.and %v683, %v1240 : i1
+  %v1242 = pyc.mux %v1241, %v678, %v117 : i32
+  pyc.assign %v113, %v1242 : i32
+  %v1243 = pyc.constant 23 : i5
+  %v1244 = pyc.eq %v677, %v1243 : i5
+  %v1245 = pyc.and %v683, %v1244 : i1
+  %v1246 = pyc.mux %v1245, %v678, %v122 : i32
+  pyc.assign %v118, %v1246 : i32
+  %v1247 = pyc.constant 24 : i5
+  %v1248 = pyc.eq %v677, %v1247 : i5
+  %v1249 = pyc.and %v683, %v1248 : i1
+  %v1250 = pyc.mux %v1249, %v678, %v127 : i32
+  pyc.assign %v123, %v1250 : i32
+  %v1251 = pyc.constant 25 : i5
+  %v1252 = pyc.eq %v677, %v1251 : i5
+  %v1253 = pyc.and %v683, %v1252 : i1
+  %v1254 = pyc.mux %v1253, %v678, %v132 : i32
+  pyc.assign %v128, %v1254 : i32
+  %v1255 = pyc.constant 26 : i5
+  %v1256 = pyc.eq %v677, %v1255 : i5
+  %v1257 = pyc.and %v683, %v1256 : i1
+  %v1258 = pyc.mux %v1257, %v678, %v137 : i32
+  pyc.assign %v133, %v1258 : i32
+  %v1259 = pyc.constant 27 : i5
+  %v1260 = pyc.eq %v677, %v1259 : i5
+  %v1261 = pyc.and %v683, %v1260 : i1
+  %v1262 = pyc.mux %v1261, %v678, %v142 : i32
+  pyc.assign %v138, %v1262 : i32
+  %v1263 = pyc.constant 28 : i5
+  %v1264 = pyc.eq %v677, %v1263 : i5
+  %v1265 = pyc.and %v683, %v1264 : i1
+  %v1266 = pyc.mux %v1265, %v678, %v147 : i32
+  pyc.assign %v143, %v1266 : i32
+  %v1267 = pyc.constant 29 : i5
+  %v1268 = pyc.eq %v677, %v1267 : i5
+  %v1269 = pyc.and %v683, %v1268 : i1
+  %v1270 = pyc.mux %v1269, %v678, %v152 : i32
+  pyc.assign %v148, %v1270 : i32
+  %v1271 = pyc.constant 30 : i5
+  %v1272 = pyc.eq %v677, %v1271 : i5
+  %v1273 = pyc.and %v683, %v1272 : i1
+  %v1274 = pyc.mux %v1273, %v678, %v157 : i32
+  pyc.assign %v153, %v1274 : i32
+  %v1275 = pyc.constant 31 : i5
+  %v1276 = pyc.eq %v677, %v1275 : i5
+  %v1277 = pyc.and %v683, %v1276 : i1
+  %v1278 = pyc.mux %v1277, %v678, %v162 : i32
+  pyc.assign %v158, %v1278 : i32
+  %v1279 = pyc.and %v318, %v288 : i1
+  %v1280 = pyc.and %v312, %v288 : i1
+  func.return %v168, %v300, %v306, %v1279, %v1280, %v324, %v330, %v336, %v12, %v17, %v57, %v62 : i32, i32, i32, i1, i1, i1, i5, i32, i32, i32, i32, i32
+}
+
+}
