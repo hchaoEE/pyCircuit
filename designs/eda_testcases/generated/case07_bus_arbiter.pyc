@@ -1,0 +1,249 @@
+module attributes {pyc.top = @bus_arbiter, pyc.frontend.contract = "pycircuit"} {
+func.func @bus_arbiter(%clk: !pyc.clock, %rst: !pyc.reset, %req0: i1, %req1: i1, %req2: i1, %req3: i1, %lock0: i1, %lock1: i1, %lock2: i1, %lock3: i1, %data0: i32, %data1: i32, %data2: i32, %data3: i32) -> (i1, i1, i1, i1, i32, i1) attributes {arg_names = ["clk", "rst", "req0", "req1", "req2", "req3", "lock0", "lock1", "lock2", "lock3", "data0", "data1", "data2", "data3"], result_names = ["grant0", "grant1", "grant2", "grant3", "bus_data", "bus_valid"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.wire {pyc.name = "last_grant__next"} : i2
+  %v2 = pyc.constant 1 : i1
+  %v3 = pyc.constant 0 : i2
+  %v4 = pyc.reg %clk, %rst, %v2, %v1, %v3 : i2
+  %v5 = pyc.alias %v4 {pyc.name = "last_grant"} : i2
+  %v6 = pyc.alias %v5 {pyc.name = "last_grant__case07_bus_arbiter__L21"} : i2
+  %v7 = pyc.wire {pyc.name = "active_q__next"} : i1
+  %v8 = pyc.constant 1 : i1
+  %v9 = pyc.constant 0 : i1
+  %v10 = pyc.reg %clk, %rst, %v8, %v7, %v9 : i1
+  %v11 = pyc.alias %v10 {pyc.name = "active_q"} : i1
+  %v12 = pyc.alias %v11 {pyc.name = "active__case07_bus_arbiter__L22"} : i1
+  %v13 = pyc.wire {pyc.name = "active_port__next"} : i2
+  %v14 = pyc.constant 1 : i1
+  %v15 = pyc.constant 0 : i2
+  %v16 = pyc.reg %clk, %rst, %v14, %v13, %v15 : i2
+  %v17 = pyc.alias %v16 {pyc.name = "active_port"} : i2
+  %v18 = pyc.alias %v17 {pyc.name = "active_port__case07_bus_arbiter__L23"} : i2
+  %v19 = pyc.wire {pyc.name = "locked_q__next"} : i1
+  %v20 = pyc.constant 1 : i1
+  %v21 = pyc.constant 0 : i1
+  %v22 = pyc.reg %clk, %rst, %v20, %v19, %v21 : i1
+  %v23 = pyc.alias %v22 {pyc.name = "locked_q"} : i1
+  %v24 = pyc.alias %v23 {pyc.name = "locked__case07_bus_arbiter__L24"} : i1
+  %v25 = pyc.alias %v6 {pyc.name = "lg__case07_bus_arbiter__L26"} : i2
+  %v26 = pyc.alias %v12 {pyc.name = "act__case07_bus_arbiter__L27"} : i1
+  %v27 = pyc.alias %v18 {pyc.name = "ap__case07_bus_arbiter__L28"} : i2
+  %v28 = pyc.alias %v24 {pyc.name = "lck__case07_bus_arbiter__L29"} : i1
+  %v29 = pyc.or %req0, %req1 : i1
+  %v30 = pyc.or %v29, %req2 : i1
+  %v31 = pyc.or %v30, %req3 : i1
+  %v32 = pyc.alias %v31 {pyc.name = "any_req__case07_bus_arbiter__L31"} : i1
+  %v33 = pyc.constant 0 : i2
+  %v34 = pyc.mux %req0, %v33, %v25 : i2
+  %v35 = pyc.alias %v34 {pyc.name = "winner__case07_bus_arbiter__L34"} : i2
+  %v36 = pyc.constant 1 : i2
+  %v37 = pyc.mux %req1, %v36, %v35 : i2
+  %v38 = pyc.alias %v37 {pyc.name = "winner__case07_bus_arbiter__L35"} : i2
+  %v39 = pyc.constant 2 : i2
+  %v40 = pyc.mux %req2, %v39, %v38 : i2
+  %v41 = pyc.alias %v40 {pyc.name = "winner__case07_bus_arbiter__L36"} : i2
+  %v42 = pyc.constant 3 : i2
+  %v43 = pyc.mux %req3, %v42, %v41 : i2
+  %v44 = pyc.alias %v43 {pyc.name = "winner__case07_bus_arbiter__L37"} : i2
+  %v45 = pyc.constant 1 : i2
+  %v46 = pyc.add %v25, %v45 : i2
+  %v47 = pyc.extract %v46 {lsb = 0} : i2 -> i2
+  %v48 = pyc.alias %v47 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v49 = pyc.constant 0 : i2
+  %v50 = pyc.eq %v48, %v49 : i2
+  %v51 = pyc.and %req0, %v50 : i1
+  %v52 = pyc.mux %v51, %v48, %v44 : i2
+  %v53 = pyc.alias %v52 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v54 = pyc.constant 1 : i2
+  %v55 = pyc.add %v25, %v54 : i2
+  %v56 = pyc.extract %v55 {lsb = 0} : i2 -> i2
+  %v57 = pyc.alias %v56 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v58 = pyc.constant 1 : i2
+  %v59 = pyc.eq %v57, %v58 : i2
+  %v60 = pyc.and %req1, %v59 : i1
+  %v61 = pyc.mux %v60, %v57, %v53 : i2
+  %v62 = pyc.alias %v61 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v63 = pyc.constant 1 : i2
+  %v64 = pyc.add %v25, %v63 : i2
+  %v65 = pyc.extract %v64 {lsb = 0} : i2 -> i2
+  %v66 = pyc.alias %v65 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v67 = pyc.constant 2 : i2
+  %v68 = pyc.eq %v66, %v67 : i2
+  %v69 = pyc.and %req2, %v68 : i1
+  %v70 = pyc.mux %v69, %v66, %v62 : i2
+  %v71 = pyc.alias %v70 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v72 = pyc.constant 1 : i2
+  %v73 = pyc.add %v25, %v72 : i2
+  %v74 = pyc.extract %v73 {lsb = 0} : i2 -> i2
+  %v75 = pyc.alias %v74 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v76 = pyc.constant 3 : i2
+  %v77 = pyc.eq %v75, %v76 : i2
+  %v78 = pyc.and %req3, %v77 : i1
+  %v79 = pyc.mux %v78, %v75, %v71 : i2
+  %v80 = pyc.alias %v79 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v81 = pyc.constant 2 : i2
+  %v82 = pyc.add %v25, %v81 : i2
+  %v83 = pyc.extract %v82 {lsb = 0} : i2 -> i2
+  %v84 = pyc.alias %v83 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v85 = pyc.constant 0 : i2
+  %v86 = pyc.eq %v84, %v85 : i2
+  %v87 = pyc.and %req0, %v86 : i1
+  %v88 = pyc.mux %v87, %v84, %v80 : i2
+  %v89 = pyc.alias %v88 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v90 = pyc.constant 2 : i2
+  %v91 = pyc.add %v25, %v90 : i2
+  %v92 = pyc.extract %v91 {lsb = 0} : i2 -> i2
+  %v93 = pyc.alias %v92 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v94 = pyc.constant 1 : i2
+  %v95 = pyc.eq %v93, %v94 : i2
+  %v96 = pyc.and %req1, %v95 : i1
+  %v97 = pyc.mux %v96, %v93, %v89 : i2
+  %v98 = pyc.alias %v97 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v99 = pyc.constant 2 : i2
+  %v100 = pyc.add %v25, %v99 : i2
+  %v101 = pyc.extract %v100 {lsb = 0} : i2 -> i2
+  %v102 = pyc.alias %v101 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v103 = pyc.constant 2 : i2
+  %v104 = pyc.eq %v102, %v103 : i2
+  %v105 = pyc.and %req2, %v104 : i1
+  %v106 = pyc.mux %v105, %v102, %v98 : i2
+  %v107 = pyc.alias %v106 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v108 = pyc.constant 2 : i2
+  %v109 = pyc.add %v25, %v108 : i2
+  %v110 = pyc.extract %v109 {lsb = 0} : i2 -> i2
+  %v111 = pyc.alias %v110 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v112 = pyc.constant 3 : i2
+  %v113 = pyc.eq %v111, %v112 : i2
+  %v114 = pyc.and %req3, %v113 : i1
+  %v115 = pyc.mux %v114, %v111, %v107 : i2
+  %v116 = pyc.alias %v115 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v117 = pyc.constant 3 : i2
+  %v118 = pyc.add %v25, %v117 : i2
+  %v119 = pyc.extract %v118 {lsb = 0} : i2 -> i2
+  %v120 = pyc.alias %v119 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v121 = pyc.constant 0 : i2
+  %v122 = pyc.eq %v120, %v121 : i2
+  %v123 = pyc.and %req0, %v122 : i1
+  %v124 = pyc.mux %v123, %v120, %v116 : i2
+  %v125 = pyc.alias %v124 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v126 = pyc.constant 3 : i2
+  %v127 = pyc.add %v25, %v126 : i2
+  %v128 = pyc.extract %v127 {lsb = 0} : i2 -> i2
+  %v129 = pyc.alias %v128 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v130 = pyc.constant 1 : i2
+  %v131 = pyc.eq %v129, %v130 : i2
+  %v132 = pyc.and %req1, %v131 : i1
+  %v133 = pyc.mux %v132, %v129, %v125 : i2
+  %v134 = pyc.alias %v133 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v135 = pyc.constant 3 : i2
+  %v136 = pyc.add %v25, %v135 : i2
+  %v137 = pyc.extract %v136 {lsb = 0} : i2 -> i2
+  %v138 = pyc.alias %v137 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v139 = pyc.constant 2 : i2
+  %v140 = pyc.eq %v138, %v139 : i2
+  %v141 = pyc.and %req2, %v140 : i1
+  %v142 = pyc.mux %v141, %v138, %v134 : i2
+  %v143 = pyc.alias %v142 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v144 = pyc.constant 3 : i2
+  %v145 = pyc.add %v25, %v144 : i2
+  %v146 = pyc.extract %v145 {lsb = 0} : i2 -> i2
+  %v147 = pyc.alias %v146 {pyc.name = "cand__case07_bus_arbiter__L42"} : i2
+  %v148 = pyc.constant 3 : i2
+  %v149 = pyc.eq %v147, %v148 : i2
+  %v150 = pyc.and %req3, %v149 : i1
+  %v151 = pyc.mux %v150, %v147, %v143 : i2
+  %v152 = pyc.alias %v151 {pyc.name = "winner__case07_bus_arbiter__L43"} : i2
+  %v153 = pyc.alias %v26 {pyc.name = "nxt_act__case07_bus_arbiter__L45"} : i1
+  %v154 = pyc.alias %v27 {pyc.name = "nxt_ap__case07_bus_arbiter__L46"} : i2
+  %v155 = pyc.alias %v25 {pyc.name = "nxt_lg__case07_bus_arbiter__L47"} : i2
+  %v156 = pyc.alias %v28 {pyc.name = "nxt_lck__case07_bus_arbiter__L48"} : i1
+  %v157 = pyc.alias %req0 {pyc.name = "cur_req_held__case07_bus_arbiter__L50"} : i1
+  %v158 = pyc.constant 1 : i2
+  %v159 = pyc.eq %v27, %v158 : i2
+  %v160 = pyc.mux %v159, %req1, %v157 : i1
+  %v161 = pyc.alias %v160 {pyc.name = "cur_req_held__case07_bus_arbiter__L52"} : i1
+  %v162 = pyc.constant 2 : i2
+  %v163 = pyc.eq %v27, %v162 : i2
+  %v164 = pyc.mux %v163, %req2, %v161 : i1
+  %v165 = pyc.alias %v164 {pyc.name = "cur_req_held__case07_bus_arbiter__L52"} : i1
+  %v166 = pyc.constant 3 : i2
+  %v167 = pyc.eq %v27, %v166 : i2
+  %v168 = pyc.mux %v167, %req3, %v165 : i1
+  %v169 = pyc.alias %v168 {pyc.name = "cur_req_held__case07_bus_arbiter__L52"} : i1
+  %v170 = pyc.alias %lock0 {pyc.name = "cur_lock__case07_bus_arbiter__L54"} : i1
+  %v171 = pyc.constant 1 : i2
+  %v172 = pyc.eq %v27, %v171 : i2
+  %v173 = pyc.mux %v172, %lock1, %v170 : i1
+  %v174 = pyc.alias %v173 {pyc.name = "cur_lock__case07_bus_arbiter__L56"} : i1
+  %v175 = pyc.constant 2 : i2
+  %v176 = pyc.eq %v27, %v175 : i2
+  %v177 = pyc.mux %v176, %lock2, %v174 : i1
+  %v178 = pyc.alias %v177 {pyc.name = "cur_lock__case07_bus_arbiter__L56"} : i1
+  %v179 = pyc.constant 3 : i2
+  %v180 = pyc.eq %v27, %v179 : i2
+  %v181 = pyc.mux %v180, %lock3, %v178 : i1
+  %v182 = pyc.alias %v181 {pyc.name = "cur_lock__case07_bus_arbiter__L56"} : i1
+  %v183 = pyc.not %v169 : i1
+  %v184 = pyc.not %v28 : i1
+  %v185 = pyc.and %v183, %v184 : i1
+  %v186 = pyc.alias %v185 {pyc.name = "release__case07_bus_arbiter__L58"} : i1
+  %v200, %v201, %v202, %v203 = scf.if %v26 -> (i1, i2, i1, i2) {
+    %v187 = pyc.alias %v182 {pyc.name = "nxt_lck__case07_bus_arbiter__L61"} : i1
+    %v188 = scf.if %v186 -> i1 {
+      %v189 = pyc.constant 0 : i1
+      scf.yield %v189 : i1
+    } else {
+      scf.yield %v153 : i1
+    }
+    %v190 = pyc.alias %v188 {pyc.name = "nxt_act__case07_bus_arbiter__L62"} : i1
+    scf.yield %v190, %v154, %v187, %v155 : i1, i2, i1, i2
+  } else {
+    %v193, %v194, %v195 = scf.if %v32 -> (i1, i2, i2) {
+      %v191 = pyc.alias %v152 {pyc.name = "nxt_ap__case07_bus_arbiter__L67"} : i2
+      %v192 = pyc.alias %v152 {pyc.name = "nxt_lg__case07_bus_arbiter__L68"} : i2
+      %v196 = pyc.constant 1 : i1
+      scf.yield %v196, %v191, %v192 : i1, i2, i2
+    } else {
+      scf.yield %v153, %v154, %v155 : i1, i2, i2
+    }
+    %v197 = pyc.alias %v193 {pyc.name = "nxt_act__case07_bus_arbiter__L65"} : i1
+    %v198 = pyc.alias %v194 {pyc.name = "nxt_ap__case07_bus_arbiter__L65"} : i2
+    %v199 = pyc.alias %v195 {pyc.name = "nxt_lg__case07_bus_arbiter__L65"} : i2
+    scf.yield %v197, %v198, %v156, %v199 : i1, i2, i1, i2
+  }
+  %v204 = pyc.alias %v200 {pyc.name = "nxt_act__case07_bus_arbiter__L60"} : i1
+  %v205 = pyc.alias %v201 {pyc.name = "nxt_ap__case07_bus_arbiter__L60"} : i2
+  %v206 = pyc.alias %v202 {pyc.name = "nxt_lck__case07_bus_arbiter__L60"} : i1
+  %v207 = pyc.alias %v203 {pyc.name = "nxt_lg__case07_bus_arbiter__L60"} : i2
+  pyc.assign %v7, %v204 : i1
+  pyc.assign %v13, %v205 : i2
+  pyc.assign %v1, %v207 : i2
+  pyc.assign %v19, %v206 : i1
+  %v208 = pyc.constant 0 : i2
+  %v209 = pyc.eq %v27, %v208 : i2
+  %v210 = pyc.and %v26, %v209 : i1
+  %v211 = pyc.alias %v210 {pyc.name = "grant_i__case07_bus_arbiter__L78"} : i1
+  %v212 = pyc.constant 0 : i32
+  %v213 = pyc.mux %v211, %data0, %v212 : i32
+  %v214 = pyc.alias %v213 {pyc.name = "bus_data__case07_bus_arbiter__L80"} : i32
+  %v215 = pyc.constant 1 : i2
+  %v216 = pyc.eq %v27, %v215 : i2
+  %v217 = pyc.and %v26, %v216 : i1
+  %v218 = pyc.alias %v217 {pyc.name = "grant_i__case07_bus_arbiter__L78"} : i1
+  %v219 = pyc.mux %v218, %data1, %v214 : i32
+  %v220 = pyc.alias %v219 {pyc.name = "bus_data__case07_bus_arbiter__L80"} : i32
+  %v221 = pyc.constant 2 : i2
+  %v222 = pyc.eq %v27, %v221 : i2
+  %v223 = pyc.and %v26, %v222 : i1
+  %v224 = pyc.alias %v223 {pyc.name = "grant_i__case07_bus_arbiter__L78"} : i1
+  %v225 = pyc.mux %v224, %data2, %v220 : i32
+  %v226 = pyc.alias %v225 {pyc.name = "bus_data__case07_bus_arbiter__L80"} : i32
+  %v227 = pyc.constant 3 : i2
+  %v228 = pyc.eq %v27, %v227 : i2
+  %v229 = pyc.and %v26, %v228 : i1
+  %v230 = pyc.alias %v229 {pyc.name = "grant_i__case07_bus_arbiter__L78"} : i1
+  %v231 = pyc.mux %v230, %data3, %v226 : i32
+  %v232 = pyc.alias %v231 {pyc.name = "bus_data__case07_bus_arbiter__L80"} : i32
+  func.return %v211, %v218, %v224, %v230, %v232, %v12 : i1, i1, i1, i1, i32, i1
+}
+
+}

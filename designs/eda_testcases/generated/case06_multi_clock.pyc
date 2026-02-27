@@ -1,0 +1,87 @@
+module attributes {pyc.top = @multi_clock, pyc.frontend.contract = "pycircuit"} {
+func.func @multi_clock(%clk_fast: !pyc.clock, %rst_fast: !pyc.reset, %clk_slow: !pyc.clock, %rst_slow: !pyc.reset, %data_in: i8, %capture: i1) -> (i8, i8, i1, i16) attributes {arg_names = ["clk_fast", "rst_fast", "clk_slow", "rst_slow", "data_in", "capture"], result_names = ["fast_count", "captured", "sync_valid", "slow_accumulator"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %data_in {pyc.name = "data_in__case06_multi_clock__L17"} : i8
+  %v2 = pyc.alias %capture {pyc.name = "capture__case06_multi_clock__L18"} : i1
+  %v3 = pyc.wire {pyc.name = "fast_cnt__next"} : i8
+  %v4 = pyc.constant 1 : i1
+  %v5 = pyc.constant 0 : i8
+  %v6 = pyc.reg %clk_fast, %rst_fast, %v4, %v3, %v5 : i8
+  %v7 = pyc.alias %v6 {pyc.name = "fast_cnt"} : i8
+  %v8 = pyc.alias %v7 {pyc.name = "fast_cnt__case06_multi_clock__L21"} : i8
+  %v9 = pyc.constant 1 : i8
+  %v10 = pyc.add %v8, %v9 : i8
+  %v11 = pyc.extract %v10 {lsb = 0} : i8 -> i8
+  pyc.assign %v3, %v11 : i8
+  %v12 = pyc.wire {pyc.name = "capt_val__next"} : i8
+  %v13 = pyc.constant 1 : i1
+  %v14 = pyc.constant 0 : i8
+  %v15 = pyc.reg %clk_fast, %rst_fast, %v13, %v12, %v14 : i8
+  %v16 = pyc.alias %v15 {pyc.name = "capt_val"} : i8
+  %v17 = pyc.alias %v16 {pyc.name = "capt_val__case06_multi_clock__L24"} : i8
+  %v18 = pyc.mux %v2, %v1, %v17 : i8
+  pyc.assign %v12, %v18 : i8
+  %v19 = pyc.wire {pyc.name = "capt_flag__next"} : i1
+  %v20 = pyc.constant 1 : i1
+  %v21 = pyc.constant 0 : i1
+  %v22 = pyc.reg %clk_fast, %rst_fast, %v20, %v19, %v21 : i1
+  %v23 = pyc.alias %v22 {pyc.name = "capt_flag"} : i1
+  %v24 = pyc.alias %v23 {pyc.name = "capt_flag__case06_multi_clock__L27"} : i1
+  %v25 = pyc.or %v2, %v24 : i1
+  pyc.assign %v19, %v25 : i1
+  %v26 = pyc.wire {pyc.name = "sync1__next"} : i1
+  %v27 = pyc.constant 1 : i1
+  %v28 = pyc.constant 0 : i1
+  %v29 = pyc.reg %clk_slow, %rst_slow, %v27, %v26, %v28 : i1
+  %v30 = pyc.alias %v29 {pyc.name = "sync1"} : i1
+  %v31 = pyc.alias %v30 {pyc.name = "sync1__case06_multi_clock__L31"} : i1
+  %v32 = pyc.wire {pyc.name = "sync2__next"} : i1
+  %v33 = pyc.constant 1 : i1
+  %v34 = pyc.constant 0 : i1
+  %v35 = pyc.reg %clk_slow, %rst_slow, %v33, %v32, %v34 : i1
+  %v36 = pyc.alias %v35 {pyc.name = "sync2"} : i1
+  %v37 = pyc.alias %v36 {pyc.name = "sync2__case06_multi_clock__L32"} : i1
+  pyc.assign %v26, %v24 : i1
+  pyc.assign %v32, %v31 : i1
+  %v38 = pyc.wire {pyc.name = "sdata1__next"} : i8
+  %v39 = pyc.constant 1 : i1
+  %v40 = pyc.constant 0 : i8
+  %v41 = pyc.reg %clk_slow, %rst_slow, %v39, %v38, %v40 : i8
+  %v42 = pyc.alias %v41 {pyc.name = "sdata1"} : i8
+  %v43 = pyc.alias %v42 {pyc.name = "sync_data1__case06_multi_clock__L36"} : i8
+  %v44 = pyc.wire {pyc.name = "sdata2__next"} : i8
+  %v45 = pyc.constant 1 : i1
+  %v46 = pyc.constant 0 : i8
+  %v47 = pyc.reg %clk_slow, %rst_slow, %v45, %v44, %v46 : i8
+  %v48 = pyc.alias %v47 {pyc.name = "sdata2"} : i8
+  %v49 = pyc.alias %v48 {pyc.name = "sync_data2__case06_multi_clock__L37"} : i8
+  pyc.assign %v38, %v17 : i8
+  pyc.assign %v44, %v43 : i8
+  %v50 = pyc.wire {pyc.name = "s2prev__next"} : i1
+  %v51 = pyc.constant 1 : i1
+  %v52 = pyc.constant 0 : i1
+  %v53 = pyc.reg %clk_slow, %rst_slow, %v51, %v50, %v52 : i1
+  %v54 = pyc.alias %v53 {pyc.name = "s2prev"} : i1
+  %v55 = pyc.alias %v54 {pyc.name = "sync2_prev__case06_multi_clock__L42"} : i1
+  pyc.assign %v50, %v37 : i1
+  %v56 = pyc.not %v55 : i1
+  %v57 = pyc.and %v37, %v56 : i1
+  %v58 = pyc.alias %v57 {pyc.name = "rising_edge__case06_multi_clock__L44"} : i1
+  %v59 = pyc.wire {pyc.name = "slow_acc__next"} : i16
+  %v60 = pyc.constant 1 : i1
+  %v61 = pyc.constant 0 : i16
+  %v62 = pyc.reg %clk_slow, %rst_slow, %v60, %v59, %v61 : i16
+  %v63 = pyc.alias %v62 {pyc.name = "slow_acc"} : i16
+  %v64 = pyc.alias %v63 {pyc.name = "slow_acc__case06_multi_clock__L46"} : i16
+  %v65 = pyc.alias %v64 {pyc.name = "acc_val__case06_multi_clock__L47"} : i16
+  %v66 = pyc.constant 0 : i16
+  %v67 = pyc.zext %v49 : i8 -> i16
+  %v68 = pyc.add %v67, %v66 : i16
+  %v69 = pyc.add %v65, %v68 : i16
+  %v70 = pyc.extract %v69 {lsb = 0} : i16 -> i16
+  %v71 = pyc.alias %v70 {pyc.name = "new_acc__case06_multi_clock__L48"} : i16
+  %v72 = pyc.mux %v58, %v71, %v64 : i16
+  pyc.assign %v59, %v72 : i16
+  func.return %v8, %v17, %v37, %v64 : i8, i8, i1, i16
+}
+
+}

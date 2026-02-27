@@ -1,0 +1,136 @@
+module attributes {pyc.top = @pipeline_mac, pyc.frontend.contract = "pycircuit"} {
+func.func @pipeline_mac(%clk: !pyc.clock, %rst: !pyc.reset, %a_in: i16, %b_in: i16, %valid_in: i1, %acc_clear: i1, %saturate_mode: i1) -> (i32, i1, i40) attributes {arg_names = ["clk", "rst", "a_in", "b_in", "valid_in", "acc_clear", "saturate_mode"], result_names = ["result", "valid_out", "accumulator"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %a_in {pyc.name = "a_in__case04_pipeline_mac__L15"} : i16
+  %v2 = pyc.alias %b_in {pyc.name = "b_in__case04_pipeline_mac__L16"} : i16
+  %v3 = pyc.alias %valid_in {pyc.name = "valid_in__case04_pipeline_mac__L17"} : i1
+  %v4 = pyc.alias %acc_clear {pyc.name = "acc_clear__case04_pipeline_mac__L18"} : i1
+  %v5 = pyc.alias %saturate_mode {pyc.name = "saturate_mode__case04_pipeline_mac__L19"} : i1
+  %v6 = pyc.wire {pyc.name = "s1_a__next"} : i16
+  %v7 = pyc.constant 1 : i1
+  %v8 = pyc.constant 0 : i16
+  %v9 = pyc.reg %clk, %rst, %v7, %v6, %v8 : i16
+  %v10 = pyc.alias %v9 {pyc.name = "s1_a"} : i16
+  %v11 = pyc.alias %v10 {pyc.name = "s1_a__case04_pipeline_mac__L21"} : i16
+  %v12 = pyc.wire {pyc.name = "s1_b__next"} : i16
+  %v13 = pyc.constant 1 : i1
+  %v14 = pyc.constant 0 : i16
+  %v15 = pyc.reg %clk, %rst, %v13, %v12, %v14 : i16
+  %v16 = pyc.alias %v15 {pyc.name = "s1_b"} : i16
+  %v17 = pyc.alias %v16 {pyc.name = "s1_b__case04_pipeline_mac__L22"} : i16
+  %v18 = pyc.wire {pyc.name = "s1_v__next"} : i1
+  %v19 = pyc.constant 1 : i1
+  %v20 = pyc.constant 0 : i1
+  %v21 = pyc.reg %clk, %rst, %v19, %v18, %v20 : i1
+  %v22 = pyc.alias %v21 {pyc.name = "s1_v"} : i1
+  %v23 = pyc.alias %v22 {pyc.name = "s1_v__case04_pipeline_mac__L23"} : i1
+  %v24 = pyc.wire {pyc.name = "s1_clr__next"} : i1
+  %v25 = pyc.constant 1 : i1
+  %v26 = pyc.constant 0 : i1
+  %v27 = pyc.reg %clk, %rst, %v25, %v24, %v26 : i1
+  %v28 = pyc.alias %v27 {pyc.name = "s1_clr"} : i1
+  %v29 = pyc.alias %v28 {pyc.name = "s1_clr__case04_pipeline_mac__L24"} : i1
+  %v30 = pyc.wire {pyc.name = "s1_sat__next"} : i1
+  %v31 = pyc.constant 1 : i1
+  %v32 = pyc.constant 0 : i1
+  %v33 = pyc.reg %clk, %rst, %v31, %v30, %v32 : i1
+  %v34 = pyc.alias %v33 {pyc.name = "s1_sat"} : i1
+  %v35 = pyc.alias %v34 {pyc.name = "s1_sat__case04_pipeline_mac__L25"} : i1
+  %v36 = pyc.wire {pyc.name = "s2_prod__next"} : i32
+  %v37 = pyc.constant 1 : i1
+  %v38 = pyc.constant 0 : i32
+  %v39 = pyc.reg %clk, %rst, %v37, %v36, %v38 : i32
+  %v40 = pyc.alias %v39 {pyc.name = "s2_prod"} : i32
+  %v41 = pyc.alias %v40 {pyc.name = "s2_prod__case04_pipeline_mac__L27"} : i32
+  %v42 = pyc.wire {pyc.name = "s2_v__next"} : i1
+  %v43 = pyc.constant 1 : i1
+  %v44 = pyc.constant 0 : i1
+  %v45 = pyc.reg %clk, %rst, %v43, %v42, %v44 : i1
+  %v46 = pyc.alias %v45 {pyc.name = "s2_v"} : i1
+  %v47 = pyc.alias %v46 {pyc.name = "s2_v__case04_pipeline_mac__L28"} : i1
+  %v48 = pyc.wire {pyc.name = "s2_clr__next"} : i1
+  %v49 = pyc.constant 1 : i1
+  %v50 = pyc.constant 0 : i1
+  %v51 = pyc.reg %clk, %rst, %v49, %v48, %v50 : i1
+  %v52 = pyc.alias %v51 {pyc.name = "s2_clr"} : i1
+  %v53 = pyc.alias %v52 {pyc.name = "s2_clr__case04_pipeline_mac__L29"} : i1
+  %v54 = pyc.wire {pyc.name = "s2_sat__next"} : i1
+  %v55 = pyc.constant 1 : i1
+  %v56 = pyc.constant 0 : i1
+  %v57 = pyc.reg %clk, %rst, %v55, %v54, %v56 : i1
+  %v58 = pyc.alias %v57 {pyc.name = "s2_sat"} : i1
+  %v59 = pyc.alias %v58 {pyc.name = "s2_sat__case04_pipeline_mac__L30"} : i1
+  %v60 = pyc.wire {pyc.name = "s3_sum__next"} : i40
+  %v61 = pyc.constant 1 : i1
+  %v62 = pyc.constant 0 : i40
+  %v63 = pyc.reg %clk, %rst, %v61, %v60, %v62 : i40
+  %v64 = pyc.alias %v63 {pyc.name = "s3_sum"} : i40
+  %v65 = pyc.alias %v64 {pyc.name = "s3_sum__case04_pipeline_mac__L32"} : i40
+  %v66 = pyc.wire {pyc.name = "s3_v__next"} : i1
+  %v67 = pyc.constant 1 : i1
+  %v68 = pyc.constant 0 : i1
+  %v69 = pyc.reg %clk, %rst, %v67, %v66, %v68 : i1
+  %v70 = pyc.alias %v69 {pyc.name = "s3_v"} : i1
+  %v71 = pyc.alias %v70 {pyc.name = "s3_v__case04_pipeline_mac__L33"} : i1
+  %v72 = pyc.wire {pyc.name = "s3_sat__next"} : i1
+  %v73 = pyc.constant 1 : i1
+  %v74 = pyc.constant 0 : i1
+  %v75 = pyc.reg %clk, %rst, %v73, %v72, %v74 : i1
+  %v76 = pyc.alias %v75 {pyc.name = "s3_sat"} : i1
+  %v77 = pyc.alias %v76 {pyc.name = "s3_sat__case04_pipeline_mac__L34"} : i1
+  %v78 = pyc.wire {pyc.name = "acc_q__next"} : i40
+  %v79 = pyc.constant 1 : i1
+  %v80 = pyc.constant 0 : i40
+  %v81 = pyc.reg %clk, %rst, %v79, %v78, %v80 : i40
+  %v82 = pyc.alias %v81 {pyc.name = "acc_q"} : i40
+  %v83 = pyc.alias %v82 {pyc.name = "acc__case04_pipeline_mac__L36"} : i40
+  pyc.assign %v6, %v1 : i16
+  pyc.assign %v12, %v2 : i16
+  pyc.assign %v18, %v3 : i1
+  pyc.assign %v24, %v4 : i1
+  pyc.assign %v30, %v5 : i1
+  %v84 = pyc.constant 0 : i32
+  %v85 = pyc.zext %v11 : i16 -> i32
+  %v86 = pyc.add %v85, %v84 : i32
+  %v87 = pyc.extract %v86 {lsb = 0} : i32 -> i32
+  %v88 = pyc.alias %v87 {pyc.name = "a_ext__case04_pipeline_mac__L44"} : i32
+  %v89 = pyc.constant 0 : i32
+  %v90 = pyc.zext %v17 : i16 -> i32
+  %v91 = pyc.add %v90, %v89 : i32
+  %v92 = pyc.extract %v91 {lsb = 0} : i32 -> i32
+  %v93 = pyc.alias %v92 {pyc.name = "b_ext__case04_pipeline_mac__L45"} : i32
+  %v94 = pyc.mul %v88, %v93 : i32
+  %v95 = pyc.extract %v94 {lsb = 0} : i32 -> i32
+  %v96 = pyc.alias %v95 {pyc.name = "product__case04_pipeline_mac__L46"} : i32
+  pyc.assign %v36, %v96 : i32
+  pyc.assign %v42, %v23 : i1
+  pyc.assign %v48, %v29 : i1
+  pyc.assign %v54, %v35 : i1
+  %v97 = pyc.alias %v83 {pyc.name = "acc_val__case04_pipeline_mac__L53"} : i40
+  %v98 = pyc.constant 0 : i40
+  %v99 = pyc.mux %v53, %v98, %v97 : i40
+  %v100 = pyc.alias %v99 {pyc.name = "acc_base__case04_pipeline_mac__L54"} : i40
+  %v101 = pyc.constant 0 : i40
+  %v102 = pyc.zext %v41 : i32 -> i40
+  %v103 = pyc.add %v102, %v101 : i40
+  %v104 = pyc.extract %v103 {lsb = 0} : i40 -> i40
+  %v105 = pyc.alias %v104 {pyc.name = "prod_ext__case04_pipeline_mac__L55"} : i40
+  %v106 = pyc.add %v100, %v105 : i40
+  %v107 = pyc.extract %v106 {lsb = 0} : i40 -> i40
+  %v108 = pyc.alias %v107 {pyc.name = "raw_sum__case04_pipeline_mac__L56"} : i40
+  %v109 = pyc.extract %v108 {lsb = 39} : i40 -> i1
+  %v110 = pyc.alias %v109 {pyc.name = "overflow__case04_pipeline_mac__L59"} : i1
+  %v111 = pyc.and %v110, %v59 : i1
+  %v112 = pyc.constant 549755813887 : i40
+  %v113 = pyc.mux %v111, %v112, %v108 : i40
+  %v114 = pyc.alias %v113 {pyc.name = "sat_sum__case04_pipeline_mac__L60"} : i40
+  pyc.assign %v60, %v114 : i40
+  pyc.assign %v66, %v47 : i1
+  pyc.assign %v72, %v59 : i1
+  %v115 = pyc.mux %v71, %v65, %v83 : i40
+  pyc.assign %v78, %v115 : i40
+  %v116 = pyc.extract %v65 {lsb = 0} : i40 -> i32
+  %v117 = pyc.alias %v116 {pyc.name = "result__case04_pipeline_mac__L68"} : i32
+  func.return %v117, %v71, %v83 : i32, i1, i40
+}
+
+}
