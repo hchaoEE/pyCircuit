@@ -1,0 +1,179 @@
+module attributes {pyc.top = @fsm_traffic, pyc.frontend.contract = "pycircuit"} {
+func.func @fsm_traffic(%clk: !pyc.clock, %rst: !pyc.reset, %emergency: i1) -> (i1, i1, i1, i1, i1, i1, i5) attributes {arg_names = ["clk", "rst", "emergency"], result_names = ["ns_red", "ns_yellow", "ns_green", "ew_red", "ew_yellow", "ew_green", "timer_val"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %emergency {pyc.name = "emergency__case03_fsm_traffic__L25"} : i1
+  %v2 = pyc.wire {pyc.name = "state_q__next"} : i3
+  %v3 = pyc.constant 1 : i1
+  %v4 = pyc.constant 0 : i3
+  %v5 = pyc.reg %clk, %rst, %v3, %v2, %v4 : i3
+  %v6 = pyc.alias %v5 {pyc.name = "state_q"} : i3
+  %v7 = pyc.alias %v6 {pyc.name = "state__case03_fsm_traffic__L27"} : i3
+  %v8 = pyc.wire {pyc.name = "timer_q__next"} : i5
+  %v9 = pyc.constant 1 : i1
+  %v10 = pyc.constant 0 : i5
+  %v11 = pyc.reg %clk, %rst, %v9, %v8, %v10 : i5
+  %v12 = pyc.alias %v11 {pyc.name = "timer_q"} : i5
+  %v13 = pyc.alias %v12 {pyc.name = "timer__case03_fsm_traffic__L28"} : i5
+  %v14 = pyc.alias %v7 {pyc.name = "st__case03_fsm_traffic__L30"} : i3
+  %v15 = pyc.alias %v13 {pyc.name = "tmr__case03_fsm_traffic__L31"} : i5
+  %v16 = pyc.constant 0 : i5
+  %v17 = pyc.eq %v15, %v16 : i5
+  %v18 = pyc.alias %v17 {pyc.name = "timeout__case03_fsm_traffic__L32"} : i1
+  %v19 = pyc.alias %v14 {pyc.name = "nxt_st__case03_fsm_traffic__L34"} : i3
+  %v20 = pyc.not %v18 : i1
+  %v21 = pyc.constant 1 : i5
+  %v22 = pyc.sub %v15, %v21 : i5
+  %v23 = pyc.extract %v22 {lsb = 0} : i5 -> i5
+  %v24 = pyc.mux %v20, %v23, %v15 : i5
+  %v25 = pyc.alias %v24 {pyc.name = "nxt_tmr__case03_fsm_traffic__L35"} : i5
+  %v26 = pyc.constant 0 : i3
+  %v27 = pyc.eq %v14, %v26 : i3
+  %v106, %v107 = scf.if %v27 -> (i3, i5) {
+    %v28, %v29 = scf.if %v18 -> (i3, i5) {
+      %v30 = pyc.constant 1 : i3
+      %v31 = pyc.constant 2 : i5
+      scf.yield %v30, %v31 : i3, i5
+    } else {
+      scf.yield %v19, %v25 : i3, i5
+    }
+    %v32 = pyc.alias %v28 {pyc.name = "nxt_st__case03_fsm_traffic__L38"} : i3
+    %v33 = pyc.alias %v29 {pyc.name = "nxt_tmr__case03_fsm_traffic__L38"} : i5
+    %v34, %v35 = scf.if %v1 -> (i3, i5) {
+      %v36 = pyc.constant 1 : i3
+      %v37 = pyc.constant 1 : i5
+      scf.yield %v36, %v37 : i3, i5
+    } else {
+      scf.yield %v32, %v33 : i3, i5
+    }
+    %v38 = pyc.alias %v34 {pyc.name = "nxt_st__case03_fsm_traffic__L41"} : i3
+    %v39 = pyc.alias %v35 {pyc.name = "nxt_tmr__case03_fsm_traffic__L41"} : i5
+    scf.yield %v38, %v39 : i3, i5
+  } else {
+    %v40 = pyc.constant 1 : i3
+    %v41 = pyc.eq %v14, %v40 : i3
+    %v102, %v103 = scf.if %v41 -> (i3, i5) {
+      %v42, %v43 = scf.if %v18 -> (i3, i5) {
+        %v44 = pyc.constant 2 : i3
+        %v45 = pyc.constant 1 : i5
+        scf.yield %v44, %v45 : i3, i5
+      } else {
+        scf.yield %v19, %v25 : i3, i5
+      }
+      %v46 = pyc.alias %v42 {pyc.name = "nxt_st__case03_fsm_traffic__L46"} : i3
+      %v47 = pyc.alias %v43 {pyc.name = "nxt_tmr__case03_fsm_traffic__L46"} : i5
+      scf.yield %v46, %v47 : i3, i5
+    } else {
+      %v48 = pyc.constant 2 : i3
+      %v49 = pyc.eq %v14, %v48 : i3
+      %v98, %v99 = scf.if %v49 -> (i3, i5) {
+        %v50, %v51 = scf.if %v18 -> (i3, i5) {
+          %v52 = pyc.constant 3 : i3
+          %v53 = pyc.constant 9 : i5
+          scf.yield %v52, %v53 : i3, i5
+        } else {
+          scf.yield %v19, %v25 : i3, i5
+        }
+        %v54 = pyc.alias %v50 {pyc.name = "nxt_st__case03_fsm_traffic__L51"} : i3
+        %v55 = pyc.alias %v51 {pyc.name = "nxt_tmr__case03_fsm_traffic__L51"} : i5
+        scf.yield %v54, %v55 : i3, i5
+      } else {
+        %v56 = pyc.constant 3 : i3
+        %v57 = pyc.eq %v14, %v56 : i3
+        %v94, %v95 = scf.if %v57 -> (i3, i5) {
+          %v58, %v59 = scf.if %v18 -> (i3, i5) {
+            %v60 = pyc.constant 4 : i3
+            %v61 = pyc.constant 2 : i5
+            scf.yield %v60, %v61 : i3, i5
+          } else {
+            scf.yield %v19, %v25 : i3, i5
+          }
+          %v62 = pyc.alias %v58 {pyc.name = "nxt_st__case03_fsm_traffic__L56"} : i3
+          %v63 = pyc.alias %v59 {pyc.name = "nxt_tmr__case03_fsm_traffic__L56"} : i5
+          %v64, %v65 = scf.if %v1 -> (i3, i5) {
+            %v66 = pyc.constant 4 : i3
+            %v67 = pyc.constant 1 : i5
+            scf.yield %v66, %v67 : i3, i5
+          } else {
+            scf.yield %v62, %v63 : i3, i5
+          }
+          %v68 = pyc.alias %v64 {pyc.name = "nxt_st__case03_fsm_traffic__L59"} : i3
+          %v69 = pyc.alias %v65 {pyc.name = "nxt_tmr__case03_fsm_traffic__L59"} : i5
+          scf.yield %v68, %v69 : i3, i5
+        } else {
+          %v70 = pyc.constant 4 : i3
+          %v71 = pyc.eq %v14, %v70 : i3
+          %v90, %v91 = scf.if %v71 -> (i3, i5) {
+            %v72, %v73 = scf.if %v18 -> (i3, i5) {
+              %v74 = pyc.constant 5 : i3
+              %v75 = pyc.constant 1 : i5
+              scf.yield %v74, %v75 : i3, i5
+            } else {
+              scf.yield %v19, %v25 : i3, i5
+            }
+            %v76 = pyc.alias %v72 {pyc.name = "nxt_st__case03_fsm_traffic__L64"} : i3
+            %v77 = pyc.alias %v73 {pyc.name = "nxt_tmr__case03_fsm_traffic__L64"} : i5
+            scf.yield %v76, %v77 : i3, i5
+          } else {
+            %v78 = pyc.constant 5 : i3
+            %v79 = pyc.eq %v14, %v78 : i3
+            %v86, %v87 = scf.if %v79 -> (i3, i5) {
+              %v80, %v81 = scf.if %v18 -> (i3, i5) {
+                %v82 = pyc.constant 0 : i3
+                %v83 = pyc.constant 9 : i5
+                scf.yield %v82, %v83 : i3, i5
+              } else {
+                scf.yield %v19, %v25 : i3, i5
+              }
+              %v84 = pyc.alias %v80 {pyc.name = "nxt_st__case03_fsm_traffic__L69"} : i3
+              %v85 = pyc.alias %v81 {pyc.name = "nxt_tmr__case03_fsm_traffic__L69"} : i5
+              scf.yield %v84, %v85 : i3, i5
+            } else {
+              scf.yield %v19, %v25 : i3, i5
+            }
+            %v88 = pyc.alias %v86 {pyc.name = "nxt_st__case03_fsm_traffic__L68"} : i3
+            %v89 = pyc.alias %v87 {pyc.name = "nxt_tmr__case03_fsm_traffic__L68"} : i5
+            scf.yield %v88, %v89 : i3, i5
+          }
+          %v92 = pyc.alias %v90 {pyc.name = "nxt_st__case03_fsm_traffic__L63"} : i3
+          %v93 = pyc.alias %v91 {pyc.name = "nxt_tmr__case03_fsm_traffic__L63"} : i5
+          scf.yield %v92, %v93 : i3, i5
+        }
+        %v96 = pyc.alias %v94 {pyc.name = "nxt_st__case03_fsm_traffic__L55"} : i3
+        %v97 = pyc.alias %v95 {pyc.name = "nxt_tmr__case03_fsm_traffic__L55"} : i5
+        scf.yield %v96, %v97 : i3, i5
+      }
+      %v100 = pyc.alias %v98 {pyc.name = "nxt_st__case03_fsm_traffic__L50"} : i3
+      %v101 = pyc.alias %v99 {pyc.name = "nxt_tmr__case03_fsm_traffic__L50"} : i5
+      scf.yield %v100, %v101 : i3, i5
+    }
+    %v104 = pyc.alias %v102 {pyc.name = "nxt_st__case03_fsm_traffic__L45"} : i3
+    %v105 = pyc.alias %v103 {pyc.name = "nxt_tmr__case03_fsm_traffic__L45"} : i5
+    scf.yield %v104, %v105 : i3, i5
+  }
+  %v108 = pyc.alias %v106 {pyc.name = "nxt_st__case03_fsm_traffic__L37"} : i3
+  %v109 = pyc.alias %v107 {pyc.name = "nxt_tmr__case03_fsm_traffic__L37"} : i5
+  pyc.assign %v2, %v108 : i3
+  pyc.assign %v8, %v109 : i5
+  %v110 = pyc.constant 0 : i3
+  %v111 = pyc.eq %v14, %v110 : i3
+  %v112 = pyc.alias %v111 {pyc.name = "ns_green__case03_fsm_traffic__L76"} : i1
+  %v113 = pyc.constant 1 : i3
+  %v114 = pyc.eq %v14, %v113 : i3
+  %v115 = pyc.alias %v114 {pyc.name = "ns_yellow__case03_fsm_traffic__L77"} : i1
+  %v116 = pyc.constant 3 : i3
+  %v117 = pyc.eq %v14, %v116 : i3
+  %v118 = pyc.alias %v117 {pyc.name = "ew_green__case03_fsm_traffic__L78"} : i1
+  %v119 = pyc.constant 4 : i3
+  %v120 = pyc.eq %v14, %v119 : i3
+  %v121 = pyc.alias %v120 {pyc.name = "ew_yellow__case03_fsm_traffic__L79"} : i1
+  %v122 = pyc.not %v112 : i1
+  %v123 = pyc.not %v115 : i1
+  %v124 = pyc.and %v122, %v123 : i1
+  %v125 = pyc.alias %v124 {pyc.name = "ns_r__case03_fsm_traffic__L81"} : i1
+  %v126 = pyc.not %v118 : i1
+  %v127 = pyc.not %v121 : i1
+  %v128 = pyc.and %v126, %v127 : i1
+  %v129 = pyc.alias %v128 {pyc.name = "ew_r__case03_fsm_traffic__L82"} : i1
+  func.return %v125, %v115, %v112, %v129, %v121, %v118, %v13 : i1, i1, i1, i1, i1, i1, i5
+}
+
+}

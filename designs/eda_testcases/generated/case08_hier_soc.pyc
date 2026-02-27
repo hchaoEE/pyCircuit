@@ -1,0 +1,182 @@
+module attributes {pyc.top = @hier_soc, pyc.frontend.contract = "pycircuit"} {
+func.func @_timer__p7b6483ec(%clk: !pyc.clock, %rst: !pyc.reset, %load_val: i16, %load_en: i1, %enable: i1) -> (i16, i1) attributes {arg_names = ["clk", "rst", "load_val", "load_en", "enable"], result_names = ["count", "irq"], pyc.base = "_timer", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %load_val {pyc.name = "load_val__case08_hier_soc__L15"} : i16
+  %v2 = pyc.alias %load_en {pyc.name = "load_en__case08_hier_soc__L16"} : i1
+  %v3 = pyc.alias %enable {pyc.name = "enable__case08_hier_soc__L17"} : i1
+  %v4 = pyc.wire {pyc.name = "cnt_q__next"} : i16
+  %v5 = pyc.constant 1 : i1
+  %v6 = pyc.constant 0 : i16
+  %v7 = pyc.reg %clk, %rst, %v5, %v4, %v6 : i16
+  %v8 = pyc.alias %v7 {pyc.name = "cnt_q"} : i16
+  %v9 = pyc.alias %v8 {pyc.name = "cnt__case08_hier_soc__L19"} : i16
+  %v10 = pyc.wire {pyc.name = "irq_q__next"} : i1
+  %v11 = pyc.constant 1 : i1
+  %v12 = pyc.constant 0 : i1
+  %v13 = pyc.reg %clk, %rst, %v11, %v10, %v12 : i1
+  %v14 = pyc.alias %v13 {pyc.name = "irq_q"} : i1
+  %v15 = pyc.alias %v14 {pyc.name = "irq_r__case08_hier_soc__L20"} : i1
+  %v16 = pyc.alias %v9 {pyc.name = "cv__case08_hier_soc__L22"} : i16
+  %v17 = pyc.constant 0 : i16
+  %v18 = pyc.eq %v16, %v17 : i16
+  %v19 = pyc.alias %v18 {pyc.name = "at_zero__case08_hier_soc__L23"} : i1
+  %v20 = pyc.not %v19 : i1
+  %v21 = pyc.and %v3, %v20 : i1
+  %v22 = pyc.constant 1 : i16
+  %v23 = pyc.sub %v16, %v22 : i16
+  %v24 = pyc.extract %v23 {lsb = 0} : i16 -> i16
+  %v25 = pyc.mux %v21, %v24, %v16 : i16
+  %v26 = pyc.alias %v25 {pyc.name = "nxt__case08_hier_soc__L24"} : i16
+  %v27 = pyc.mux %v2, %v1, %v26 : i16
+  %v28 = pyc.alias %v27 {pyc.name = "nxt__case08_hier_soc__L25"} : i16
+  pyc.assign %v4, %v28 : i16
+  %v29 = pyc.and %v19, %v3 : i1
+  pyc.assign %v10, %v29 : i1
+  func.return %v9, %v15 : i16, i1
+}
+
+func.func @_gpio__p7b6483ec(%clk: !pyc.clock, %rst: !pyc.reset, %dir_wr: i1, %dir_data: i8, %out_wr: i1, %out_data: i8, %pin_in: i8) -> (i8, i8, i8) attributes {arg_names = ["clk", "rst", "dir_wr", "dir_data", "out_wr", "out_data", "pin_in"], result_names = ["pin_out", "pin_oe", "pin_read"], pyc.base = "_gpio", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %dir_wr {pyc.name = "dir_wr__case08_hier_soc__L39"} : i1
+  %v2 = pyc.alias %dir_data {pyc.name = "dir_data__case08_hier_soc__L40"} : i8
+  %v3 = pyc.alias %out_wr {pyc.name = "out_wr__case08_hier_soc__L41"} : i1
+  %v4 = pyc.alias %out_data {pyc.name = "out_data__case08_hier_soc__L42"} : i8
+  %v5 = pyc.alias %pin_in {pyc.name = "pin_in__case08_hier_soc__L43"} : i8
+  %v6 = pyc.wire {pyc.name = "dir_q__next"} : i8
+  %v7 = pyc.constant 1 : i1
+  %v8 = pyc.constant 0 : i8
+  %v9 = pyc.reg %clk, %rst, %v7, %v6, %v8 : i8
+  %v10 = pyc.alias %v9 {pyc.name = "dir_q"} : i8
+  %v11 = pyc.alias %v10 {pyc.name = "direction__case08_hier_soc__L45"} : i8
+  %v12 = pyc.wire {pyc.name = "out_q__next"} : i8
+  %v13 = pyc.constant 1 : i1
+  %v14 = pyc.constant 0 : i8
+  %v15 = pyc.reg %clk, %rst, %v13, %v12, %v14 : i8
+  %v16 = pyc.alias %v15 {pyc.name = "out_q"} : i8
+  %v17 = pyc.alias %v16 {pyc.name = "out_reg__case08_hier_soc__L46"} : i8
+  %v18 = pyc.mux %v1, %v2, %v11 : i8
+  pyc.assign %v6, %v18 : i8
+  %v19 = pyc.mux %v3, %v4, %v17 : i8
+  pyc.assign %v12, %v19 : i8
+  %v20 = pyc.and %v17, %v11 : i8
+  %v21 = pyc.alias %v20 {pyc.name = "pin_out__case08_hier_soc__L51"} : i8
+  %v22 = pyc.not %v11 : i8
+  %v23 = pyc.and %v5, %v22 : i8
+  %v24 = pyc.or %v23, %v21 : i8
+  %v25 = pyc.alias %v24 {pyc.name = "pin_read__case08_hier_soc__L52"} : i8
+  func.return %v21, %v11, %v25 : i8, i8, i8
+}
+
+func.func @hier_soc(%clk: !pyc.clock, %rst: !pyc.reset, %addr: i4, %wdata: i16, %wen: i1, %ren: i1, %gpio_pin_in: i8) -> (i8, i16) attributes {arg_names = ["clk", "rst", "addr", "wdata", "wen", "ren", "gpio_pin_in"], result_names = ["pc", "acc_val"], pyc.base = "build", pyc.params = "{}", pyc.kind = "module", pyc.inline = "false"} {
+  %v1 = pyc.alias %addr {pyc.name = "addr__case08_hier_soc__L64"} : i4
+  %v2 = pyc.alias %wdata {pyc.name = "wdata__case08_hier_soc__L65"} : i16
+  %v3 = pyc.alias %wen {pyc.name = "wen__case08_hier_soc__L66"} : i1
+  %v4 = pyc.alias %ren {pyc.name = "ren__case08_hier_soc__L67"} : i1
+  %v5 = pyc.alias %gpio_pin_in {pyc.name = "gpio_pin_in__case08_hier_soc__L68"} : i8
+  %v6 = pyc.wire {pyc.name = "acc_q__next"} : i16
+  %v7 = pyc.constant 1 : i1
+  %v8 = pyc.constant 0 : i16
+  %v9 = pyc.reg %clk, %rst, %v7, %v6, %v8 : i16
+  %v10 = pyc.alias %v9 {pyc.name = "acc_q"} : i16
+  %v11 = pyc.alias %v10 {pyc.name = "acc__case08_hier_soc__L70"} : i16
+  %v12 = pyc.wire {pyc.name = "pc_q__next"} : i8
+  %v13 = pyc.constant 1 : i1
+  %v14 = pyc.constant 0 : i8
+  %v15 = pyc.reg %clk, %rst, %v13, %v12, %v14 : i8
+  %v16 = pyc.alias %v15 {pyc.name = "pc_q"} : i8
+  %v17 = pyc.alias %v16 {pyc.name = "pc_reg__case08_hier_soc__L71"} : i8
+  %v18 = pyc.constant 1 : i8
+  %v19 = pyc.add %v17, %v18 : i8
+  %v20 = pyc.extract %v19 {lsb = 0} : i8 -> i8
+  pyc.assign %v12, %v20 : i8
+  %v21 = pyc.extract %v1 {lsb = 2} : i4 -> i2
+  %v22 = pyc.constant 1 : i2
+  %v23 = pyc.eq %v21, %v22 : i2
+  %v24 = pyc.alias %v23 {pyc.name = "is_timer_addr__case08_hier_soc__L74"} : i1
+  %v25 = pyc.extract %v1 {lsb = 2} : i4 -> i2
+  %v26 = pyc.constant 2 : i2
+  %v27 = pyc.eq %v25, %v26 : i2
+  %v28 = pyc.alias %v27 {pyc.name = "is_gpio_addr__case08_hier_soc__L75"} : i1
+  %v29 = pyc.extract %v1 {lsb = 2} : i4 -> i2
+  %v30 = pyc.constant 0 : i2
+  %v31 = pyc.eq %v29, %v30 : i2
+  %v32 = pyc.alias %v31 {pyc.name = "is_core_addr__case08_hier_soc__L76"} : i1
+  %v33 = pyc.alias %v11 {pyc.name = "acc_next__case08_hier_soc__L79"} : i16
+  %v34 = pyc.and %v32, %v3 : i1
+  %v63 = scf.if %v34 -> i16 {
+    %v35 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+    %v36 = pyc.constant 0 : i2
+    %v37 = pyc.eq %v35, %v36 : i2
+    %v61 = scf.if %v37 -> i16 {
+      %v38 = pyc.alias %v2 {pyc.name = "acc_next__case08_hier_soc__L82"} : i16
+      scf.yield %v38 : i16
+    } else {
+      %v39 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+      %v40 = pyc.constant 1 : i2
+      %v41 = pyc.eq %v39, %v40 : i2
+      %v59 = scf.if %v41 -> i16 {
+        %v42 = pyc.add %v11, %v2 : i16
+        %v43 = pyc.extract %v42 {lsb = 0} : i16 -> i16
+        %v44 = pyc.alias %v43 {pyc.name = "acc_next__case08_hier_soc__L84"} : i16
+        scf.yield %v44 : i16
+      } else {
+        %v45 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+        %v46 = pyc.constant 2 : i2
+        %v47 = pyc.eq %v45, %v46 : i2
+        %v57 = scf.if %v47 -> i16 {
+          %v48 = pyc.and %v11, %v2 : i16
+          %v49 = pyc.alias %v48 {pyc.name = "acc_next__case08_hier_soc__L86"} : i16
+          scf.yield %v49 : i16
+        } else {
+          %v50 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+          %v51 = pyc.constant 3 : i2
+          %v52 = pyc.eq %v50, %v51 : i2
+          %v55 = scf.if %v52 -> i16 {
+            %v53 = pyc.or %v11, %v2 : i16
+            %v54 = pyc.alias %v53 {pyc.name = "acc_next__case08_hier_soc__L88"} : i16
+            scf.yield %v54 : i16
+          } else {
+            scf.yield %v33 : i16
+          }
+          %v56 = pyc.alias %v55 {pyc.name = "acc_next__case08_hier_soc__L87"} : i16
+          scf.yield %v56 : i16
+        }
+        %v58 = pyc.alias %v57 {pyc.name = "acc_next__case08_hier_soc__L85"} : i16
+        scf.yield %v58 : i16
+      }
+      %v60 = pyc.alias %v59 {pyc.name = "acc_next__case08_hier_soc__L83"} : i16
+      scf.yield %v60 : i16
+    }
+    %v62 = pyc.alias %v61 {pyc.name = "acc_next__case08_hier_soc__L81"} : i16
+    scf.yield %v62 : i16
+  } else {
+    scf.yield %v33 : i16
+  }
+  %v64 = pyc.alias %v63 {pyc.name = "acc_next__case08_hier_soc__L80"} : i16
+  pyc.assign %v6, %v64 : i16
+  %v65 = pyc.and %v24, %v3 : i1
+  %v66 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+  %v67 = pyc.constant 0 : i2
+  %v68 = pyc.eq %v66, %v67 : i2
+  %v69 = pyc.and %v65, %v68 : i1
+  %v70 = pyc.and %v24, %v3 : i1
+  %v71 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+  %v72 = pyc.constant 1 : i2
+  %v73 = pyc.eq %v71, %v72 : i2
+  %v74 = pyc.and %v70, %v73 : i1
+  %v75, %v76 = pyc.instance %clk, %rst, %v2, %v69, %v74 {callee = @_timer__p7b6483ec, name = "_timer__L92__N1"} : (!pyc.clock, !pyc.reset, i16, i1, i1) -> (i16, i1)
+  %v77 = pyc.and %v28, %v3 : i1
+  %v78 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+  %v79 = pyc.constant 0 : i2
+  %v80 = pyc.eq %v78, %v79 : i2
+  %v81 = pyc.and %v77, %v80 : i1
+  %v82 = pyc.extract %v2 {lsb = 0} : i16 -> i8
+  %v83 = pyc.and %v28, %v3 : i1
+  %v84 = pyc.extract %v1 {lsb = 0} : i4 -> i2
+  %v85 = pyc.constant 1 : i2
+  %v86 = pyc.eq %v84, %v85 : i2
+  %v87 = pyc.and %v83, %v86 : i1
+  %v88 = pyc.extract %v2 {lsb = 0} : i16 -> i8
+  %v89, %v90, %v91 = pyc.instance %clk, %rst, %v81, %v82, %v87, %v88, %v5 {callee = @_gpio__p7b6483ec, name = "_gpio__L100__N1"} : (!pyc.clock, !pyc.reset, i1, i8, i1, i8, i8) -> (i8, i8, i8)
+  func.return %v17, %v11 : i8, i16
+}
+
+}
